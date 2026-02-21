@@ -1,10 +1,10 @@
-# ICA (Independent Component Analysis)
+# ICA (Análisis de Componentes Independientes)
 
 ## 1. Descripción teórica
 
 ### Explicación del algoritmo y objetivo principal
 
-El Análisis de Componentes Independientes (ICA) es una técnica de separación ciega de fuentes (Blind Source Separation, BSS). Dado un conjunto de señales observadas que son mezclas lineales de fuentes independientes desconocidas, ICA recupera las fuentes originales sin conocer el proceso de mezcla. Formalmente, si X = A·S donde X son las observaciones, A es la matriz de mezcla desconocida y S son las fuentes independientes, ICA estima una matriz W ≈ A⁻¹ tal que S ≈ W·X. El algoritmo FastICA maximiza la no-gaussianidad de las componentes extraídas (medida por negentropía o kurtosis), basándose en el Teorema Central del Límite: las mezclas de señales independientes tienden a ser más gaussianas que las fuentes originales.
+El Análisis de Componentes Independientes (ICA) es una técnica de separación ciega de fuentes (BSS, por sus siglas en inglés). Dado un conjunto de señales observadas que son mezclas lineales de fuentes independientes desconocidas, ICA recupera las fuentes originales sin conocer el proceso de mezcla. Formalmente, si X = A·S donde X son las observaciones, A es la matriz de mezcla desconocida y S son las fuentes independientes, ICA estima una matriz W ≈ A⁻¹ tal que S ≈ W·X. El algoritmo FastICA maximiza la no-gaussianidad de las componentes extraídas (medida por negentropía o kurtosis), basándose en el Teorema Central del Límite: las mezclas de señales independientes tienden a ser más gaussianas que las fuentes originales.
 
 ### Principales características y supuestos
 
@@ -31,13 +31,13 @@ El Análisis de Componentes Independientes (ICA) es una técnica de separación 
 
 - **Separación ciega de fuentes (BSS)**: extraer señales originales a partir de mezclas observadas, sin conocimiento previo del proceso de mezcla.
 - **Eliminación de artefactos**: remover ruido, artefactos musculares o parpadeos de señales biomédicas.
-- **Feature extraction**: obtener representaciones estadísticamente independientes que pueden ser más informativas para tareas de clasificación.
+- **Extracción de características**: obtener representaciones estadísticamente independientes que pueden ser más informativas para tareas de clasificación.
 
 ### Áreas de aplicación
 
 1. **Electrocardiografía (ECG)**: separación de la actividad cardíaca de diferentes fuentes (actividad auricular vs ventricular), eliminación de ruido muscular y de línea eléctrica. En este ejercicio, ICA separa las componentes independientes de las derivaciones ECG, permitiendo aislar patrones como la onda P.
 2. **Electroencefalografía (EEG)**: eliminación de artefactos oculares (parpadeos) y musculares de registros cerebrales. Es estándar en herramientas como EEGLAB para limpiar datos antes de análisis de potenciales evocados.
-3. **Procesamiento de audio (cocktail party problem)**: separar las voces individuales de hablantes a partir de grabaciones con múltiples micrófonos, donde cada micrófono capta una mezcla de todas las fuentes.
+3. **Procesamiento de audio (problema del cóctel)**: separar las voces individuales de hablantes a partir de grabaciones con múltiples micrófonos, donde cada micrófono capta una mezcla de todas las fuentes.
 
 ## 3. Aplicación práctica
 
@@ -83,6 +83,14 @@ El Análisis de Componentes Independientes (ICA) es una técnica de separación 
 ### Interpretación
 
 FastICA descompone las dos derivaciones ECG en dos componentes estadísticamente independientes. Los componentes ICA presentan una kurtosis promedio de 13.38 (vs 13.16 de los canales originales), lo que indica que el algoritmo efectivamente maximiza la no-gaussianidad de cada componente, aislando fuentes con distribuciones más impulsivas (picos QRS, ondas P). En las figuras de comparación (fig_ica_03) se observa que las componentes ICA redistribuyen la información de las derivaciones: un IC tiende a capturar la actividad ventricular dominante (complejos QRS), mientras que el otro aísla mejor las ondas P y T de menor amplitud. Las figuras de detalle P-wave (fig_ica_05) muestran que las anotaciones de onda P (marcadas en rojo) coinciden con morfologías recurrentes en las componentes, validando que ICA puede facilitar la detección de estas ondas al separarlas de la actividad ventricular dominante. La matriz de mezcla estimada (ica_mixing_matrix) revela cómo cada derivación contribuye a cada componente independiente.
+
+### Limitaciones
+
+- **Solo 2 canales disponibles**: con únicamente 2 derivaciones ECG, ICA solo puede separar 2 componentes independientes. Con más canales (e.g., ECG de 12 derivaciones) se podrían aislar más fuentes fisiológicas.
+- **Mezcla lineal e instantánea**: ICA asume que las señales observadas son combinaciones lineales instantáneas de las fuentes. En la práctica, las señales cardíacas tienen retardos de conducción que violan parcialmente este supuesto.
+- **Ambigüedad en orden y signo**: las componentes ICA no tienen un orden natural ni signo definido; la interpretación fisiológica requiere conocimiento del dominio.
+- **Ventana corta**: se analizaron solo 10 segundos de cada registro; una ventana más larga podría capturar mayor variabilidad en los patrones.
+- **Validación limitada**: aunque las anotaciones de onda P sirven como referencia, no se realizó una evaluación cuantitativa de la calidad de la separación (e.g., relación señal-ruido por componente).
 
 ### Figuras generadas
 

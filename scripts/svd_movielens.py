@@ -38,6 +38,7 @@ GENRE_NAMES = [
 
 
 def load_ratings(data_dir: str) -> pd.DataFrame:
+    """Carga el archivo u.data (tab-separated: user_id, item_id, rating, timestamp)."""
     path = os.path.join(data_dir, "u.data")
     return pd.read_csv(
         path, sep="\t", header=None,
@@ -58,7 +59,11 @@ def load_items(data_dir: str) -> pd.DataFrame:
 
 
 def build_user_item_matrix(ratings: pd.DataFrame):
-    """Devuelve la matriz dispersa y los índices de usuario/película."""
+    """Construye la matriz dispersa usuario-película en formato CSR.
+
+    Los IDs de usuario/película se indexan desde 0. Las celdas vacías
+    (películas no calificadas) quedan como ceros en la matriz dispersa.
+    """
     users = ratings["user_id"].values - 1
     items = ratings["item_id"].values - 1
     vals = ratings["rating"].values.astype(np.float64)
@@ -66,13 +71,21 @@ def build_user_item_matrix(ratings: pd.DataFrame):
     n_users = ratings["user_id"].max()
     n_items = ratings["item_id"].max()
 
+    # CSR (Compressed Sparse Row) almacena eficientemente matrices con
+    # muchos ceros — ideal para matrices de ratings (~94% vacía)
     R = csr_matrix((vals, (users, items)), shape=(n_users, n_items))
     return R
 
 
 def run_svd(R, n_components: int, seed: int):
+    """Aplica TruncatedSVD a la matriz dispersa.
+
+    TruncatedSVD no centra los datos (no resta la media), lo que lo hace
+    adecuado para matrices dispersas donde el centrado destruiría la
+    dispersión. Retorna la proyección de usuarios U_reduced = U·Σ.
+    """
     svd = TruncatedSVD(n_components=n_components, random_state=seed)
-    U_reduced = svd.fit_transform(R)  # (n_users, n_components)
+    U_reduced = svd.fit_transform(R)
     return svd, U_reduced
 
 
@@ -223,12 +236,13 @@ def write_summary(evr_df: pd.DataFrame, n_components: int,
                   n_users: int, n_items: int, n_ratings: int,
                   output_dir: str) -> None:
     path = os.path.join(output_dir, "resumen_svd.md")
-    var80 = evr_df.loc[evr_df["varianza_acumulada"] >= 0.80,
-                       "componente"].min()
-    var90 = evr_df.loc[evr_df["varianza_acumulada"] >= 0.90,
-                       "componente"].min()
+    rows80 = evr_df.loc[evr_df["varianza_acumulada"] >= 0.80, "componente"]
+    var80 = int(rows80.min()) if len(rows80) > 0 else None
+    rows90 = evr_df.loc[evr_df["varianza_acumulada"] >= 0.90, "componente"]
+    var90 = int(rows90.min()) if len(rows90) > 0 else None
     top1_var = evr_df.iloc[0]["varianza_explicada"] * 100
     top5_var = evr_df.iloc[:5]["varianza_explicada"].sum() * 100
+    total_var = evr_df.iloc[-1]["varianza_acumulada"] * 100
 
     with open(path, "w", encoding="utf-8") as f:
         f.write("# SVD (Descomposición en Valores Singulares)\n\n")
@@ -325,8 +339,19 @@ def write_summary(evr_df: pd.DataFrame, n_components: int,
             f"- **Varianza explicada por el 1er componente**: {top1_var:.2f}%\n"
             f"- **Varianza acumulada (primeros 5 componentes)**: "
             f"{top5_var:.2f}%\n"
-            f"- **Componentes necesarios para 80% de varianza**: {var80}\n"
-            f"- **Componentes necesarios para 90% de varianza**: {var90}\n\n")
+            f"- **Varianza acumulada total ({n_components} componentes)**: "
+            f"{total_var:.2f}%\n")
+        var80_str = (str(var80) if var80 is not None
+                     else f">{n_components} (no alcanzado con {n_components} "
+                          f"componentes)")
+        var90_str = (str(var90) if var90 is not None
+                     else f">{n_components} (no alcanzado con {n_components} "
+                          f"componentes)")
+        f.write(
+            f"- **Componentes necesarios para 80% de varianza**: "
+            f"{var80_str}\n"
+            f"- **Componentes necesarios para 90% de varianza**: "
+            f"{var90_str}\n\n")
         f.write("### Interpretación\n\n")
         f.write(
             "Los primeros componentes capturan los patrones de rating más "
@@ -339,7 +364,30 @@ def write_summary(evr_df: pd.DataFrame, n_components: int,
             "(fig_svd_04) decrece rápidamente con los primeros componentes, "
             "indicando que la información esencial de la matriz se concentra "
             "en pocas dimensiones. La tabla de top películas por componente "
-            "revela qué títulos dominan cada factor latente.\n\n")
+            "revela qué títulos dominan cada factor latente.\n\n"
+            f"La varianza acumulada con {n_components} componentes alcanza "
+            f"solo el {total_var:.2f}%, lo cual es esperado dado que la "
+            f"matriz usuario-película es altamente dispersa (densidad "
+            f"~{n_ratings / (n_users * n_items) * 100:.1f}%) y contiene "
+            f"mucha variabilidad individual. Esto implica que se necesitarían "
+            f"muchos más componentes para capturar la mayoría de la varianza, "
+            f"pero los primeros componentes ya contienen los patrones más "
+            f"informativos para recomendación.\n\n")
+        f.write("### Limitaciones\n\n")
+        f.write(
+            "- SVD asume una relación lineal entre los factores latentes; no "
+            "captura interacciones no lineales en las preferencias de los "
+            "usuarios.\n"
+            "- La matriz de ratings tiene valores faltantes (celdas vacías = "
+            "no calificado), que TruncatedSVD trata como ceros; esto puede "
+            "sesgar los factores hacia películas populares con más ratings.\n"
+            "- No considera información temporal: las preferencias de los "
+            "usuarios pueden cambiar con el tiempo.\n"
+            "- La interpretación de los factores latentes es subjetiva; no "
+            "siempre corresponden a conceptos claros como géneros.\n"
+            "- Con matrices muy dispersas como esta (~6% de densidad), la "
+            "varianza explicada crece lentamente con el número de "
+            "componentes.\n\n")
         f.write("### Figuras generadas\n\n")
         f.write(
             "| Figura | Descripción |\n"

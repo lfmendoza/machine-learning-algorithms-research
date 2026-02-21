@@ -69,12 +69,22 @@ def load_pwave_annotations(data_dir: str, rec: str):
 # ─────────────────────────── ICA core ───────────────────────────────
 
 def apply_ica(signals: np.ndarray, n_components: int, seed: int):
-    """Aplica FastICA y devuelve (componentes, modelo ICA, scaler)."""
+    """Aplica FastICA para separar fuentes independientes.
+
+    Pasos:
+    1. StandardScaler centra y normaliza cada canal (media=0, std=1).
+    2. FastICA con blanqueo (whitening) decorrelaciona las señales.
+    3. Se busca la rotación que maximiza la no-gaussianidad (negentropía)
+       de cada componente, separando las fuentes independientes.
+
+    Retorna: (S: componentes separados, ica: modelo, scaler: normalizador)
+    """
     scaler = StandardScaler()
     X = scaler.fit_transform(signals)
 
     ica = FastICA(n_components=n_components, random_state=seed,
                   max_iter=1000, whiten="unit-variance")
+    # S = W·X donde W ≈ A⁻¹ es la matriz de desmezclado estimada
     S = ica.fit_transform(X)
     return S, ica, scaler
 
@@ -233,7 +243,12 @@ def plot_pwave_detail(signals: np.ndarray, S: np.ndarray,
 # ─────────────────────── Kurtosis analysis ──────────────────────────
 
 def compute_kurtosis_all(all_ica_results: dict, output_dir: str) -> pd.DataFrame:
-    """Calcula kurtosis (medida de no-gaussianidad) de cada componente."""
+    """Calcula la kurtosis (Fisher) como medida de no-gaussianidad.
+
+    Una kurtosis alta (positiva) indica una distribución leptocúrtica
+    (colas pesadas, picos pronunciados), típica de señales impulsivas
+    como los complejos QRS del ECG. ICA busca maximizar este valor.
+    """
     rows = []
     for rec_name, (signals, S, sig_names) in all_ica_results.items():
         for i in range(S.shape[1]):
@@ -451,6 +466,26 @@ def write_summary(all_ica_results: dict, kurtosis_df: pd.DataFrame,
             "dominante. La matriz de mezcla estimada (ica_mixing_matrix) "
             "revela cómo cada derivación contribuye a cada componente "
             "independiente.\n\n")
+        f.write("### Limitaciones\n\n")
+        f.write(
+            "- **Solo 2 canales disponibles**: con únicamente 2 derivaciones "
+            "ECG, ICA solo puede separar 2 componentes independientes. Con "
+            "más canales (e.g., ECG de 12 derivaciones) se podrían aislar "
+            "más fuentes fisiológicas.\n"
+            "- **Mezcla lineal e instantánea**: ICA asume que las señales "
+            "observadas son combinaciones lineales instantáneas de las "
+            "fuentes. En la práctica, las señales cardíacas tienen retardos "
+            "de conducción que violan parcialmente este supuesto.\n"
+            "- **Ambigüedad en orden y signo**: las componentes ICA no "
+            "tienen un orden natural ni signo definido; la interpretación "
+            "fisiológica requiere conocimiento del dominio.\n"
+            "- **Ventana corta**: se analizaron solo 10 segundos de cada "
+            "registro; una ventana más larga podría capturar mayor "
+            "variabilidad en los patrones.\n"
+            "- **Validación limitada**: aunque las anotaciones de onda P "
+            "sirven como referencia, no se realizó una evaluación "
+            "cuantitativa de la calidad de la separación (e.g., relación "
+            "señal-ruido por componente).\n\n")
         f.write("### Figuras generadas\n\n")
         f.write("| Figura | Descripción |\n|---|---|\n")
         for rec in records_list:

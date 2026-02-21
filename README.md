@@ -30,39 +30,55 @@ Estas técnicas son fundamentales en el análisis moderno de datos, ya que permi
 
 ## 2. Desarrollo
 
-Cada algoritmo se aplica a un dataset específico según los requerimientos del laboratorio. Los reportes detallados (descripción teórica, usos, resultados e interpretación) se generan automáticamente al ejecutar los scripts y se encuentran en la carpeta `outputs/`.
+Cada algoritmo se aplica a un dataset específico según los requerimientos del laboratorio. Los reportes detallados con resultados numéricos, figuras y tablas se generan automáticamente al ejecutar los scripts y se encuentran en `outputs/<algoritmo>/resumen_<algoritmo>.md`.
 
 ### 2.1 SVD (Descomposición en Valores Singulares)
 
-- **Descripción teórica**: factorización matricial A = U·Σ·Vᵀ para reducción de dimensionalidad.
-- **Usos y aplicaciones**: sistemas de recomendación, compresión de imágenes, procesamiento de lenguaje natural.
-- **Dataset utilizado**: MovieLens 100k (943 usuarios, 1682 películas, 100,000 ratings).
-- **Resultados**: varianza explicada por componente, proyecciones 2D de usuarios y películas, error de reconstrucción.
-- **Interpretación**: ver `outputs/svd/resumen_svd.md`.
+**Descripción teórica**: SVD factoriza una matriz A de dimensiones m×n en tres matrices: A = U·Σ·Vᵀ, donde U contiene los vectores singulares izquierdos, Σ es diagonal con los valores singulares ordenados de mayor a menor, y Vᵀ contiene los vectores singulares derechos. Su objetivo es la reducción de dimensionalidad: al retener solo los k valores singulares más grandes se obtiene la mejor aproximación de rango k. A diferencia de PCA, TruncatedSVD no centra los datos, lo que le permite trabajar eficientemente con matrices dispersas.
+
+**Usos y aplicaciones**: sistemas de recomendación (factorización de matrices usuario-ítem), compresión de imágenes (aproximación de bajo rango), y análisis semántico latente (LSA) en procesamiento de lenguaje natural.
+
+**Dataset utilizado**: MovieLens 100k — 943 usuarios, 1682 películas, 100,000 ratings (escala 1-5). Se construyó una matriz dispersa CSR de 943×1682 con densidad ~6.3%.
+
+**Resultados**: se extrajeron 50 componentes; el primer componente explica ~15% de la varianza. Las proyecciones 2D de películas muestran agrupamientos por género. El error de reconstrucción decrece rápidamente con los primeros componentes.
+
+**Interpretación**: los primeros factores capturan patrones de rating globales (películas universalmente populares), mientras que los posteriores capturan preferencias de nicho. La baja varianza acumulada (~49% con 50 componentes) refleja la alta dispersión de la matriz. Reporte completo: `outputs/svd/resumen_svd.md`.
 
 ### 2.2 t-SNE (Incrustación Estocástica de Vecinos con Distribución t)
 
-- **Descripción teórica**: reducción no lineal que preserva la estructura local mediante distribuciones de probabilidad y minimización de la divergencia KL.
-- **Usos y aplicaciones**: visualización exploratoria, validación de agrupamientos, análisis de representaciones de redes neuronales.
-- **Dataset utilizado**: Breast Cancer Wisconsin (569 muestras, 30 características, diagnóstico M/B).
-- **Resultados**: proyecciones 2D con distintas perplejidades, métricas de silueta y divergencia KL.
-- **Interpretación**: ver `outputs/tsne/resumen_tsne.md`.
+**Descripción teórica**: t-SNE construye distribuciones de probabilidad sobre pares de puntos en alta dimensión (gaussiana) y baja dimensión (t de Student), y minimiza la divergencia KL entre ambas. Preserva la estructura local: puntos cercanos en el espacio original permanecen cercanos en la proyección. Es no lineal, estocástico y no invertible, a diferencia de PCA.
+
+**Usos y aplicaciones**: visualización exploratoria de datos de alta dimensión, validación visual de agrupamientos, y análisis de representaciones de redes neuronales. Se usa extensamente en bioinformática (RNA-seq de célula única) y diagnóstico médico por imágenes.
+
+**Dataset utilizado**: Breast Cancer Wisconsin (Diagnostic) — 569 muestras de tumores de mama con 30 características numéricas (radio, textura, perímetro, etc.) y etiqueta M/B. Se aplicó StandardScaler previo.
+
+**Resultados**: se exploraron perplejidades {5, 15, 30, 50}. La mejor configuración (perplejidad=50) alcanzó una silueta de 0.515 con divergencia KL de 0.80. La proyección separa claramente tumores malignos de benignos.
+
+**Interpretación**: perplejidades bajas fragmentan los grupos, mientras que valores altos producen visualizaciones más globales. Las distancias entre grupos en t-SNE no son interpretables; solo la cohesión intra-grupo es confiable. Reporte completo: `outputs/tsne/resumen_tsne.md`.
 
 ### 2.3 UMAP (Aproximación y Proyección Uniforme de Variedades)
 
-- **Descripción teórica**: reducción no lineal basada en topología algebraica que preserva estructura local y global.
-- **Usos y aplicaciones**: visualización de alta dimensión, preprocesamiento para agrupamiento, exploración de representaciones vectoriales.
-- **Dataset utilizado**: Breast Cancer Wisconsin (mismo dataset que t-SNE para comparación directa).
-- **Resultados**: proyecciones 2D variando n_neighbors y min_dist, comparación lado a lado con t-SNE.
-- **Interpretación**: ver `outputs/umap/resumen_umap.md`.
+**Descripción teórica**: UMAP modela los datos como un grafo ponderado de k-vecinos (conjunto simplicial difuso) y optimiza un layout en baja dimensión que preserve la topología del grafo. Se basa en topología algebraica y geometría riemanniana. A diferencia de t-SNE, preserva mejor la estructura global, es más rápido (O(n^1.14) vs O(n²)) y permite transformar datos nuevos.
+
+**Usos y aplicaciones**: alternativa rápida a t-SNE para visualización, preprocesamiento para algoritmos de agrupamiento (HDBSCAN, KMeans), y exploración de espacios químicos en investigación farmacéutica.
+
+**Dataset utilizado**: Breast Cancer Wisconsin (mismo dataset que t-SNE para comparación directa).
+
+**Resultados**: se exploraron n_neighbors {5, 15, 30, 50} × min_dist {0.1, 0.5}. La mejor configuración (n_neighbors=5, min_dist=0.1) alcanzó una silueta de 0.515. La comparación lado a lado con t-SNE muestra que UMAP mantiene mejor las distancias relativas entre grupos.
+
+**Interpretación**: n_neighbors controla el balance local/global; min_dist controla la compacidad visual. UMAP produce grupos con distancias inter-grupo más interpretables que t-SNE. Reporte completo: `outputs/umap/resumen_umap.md`.
 
 ### 2.4 ICA (Análisis de Componentes Independientes)
 
-- **Descripción teórica**: separación ciega de fuentes que recupera señales independientes a partir de mezclas lineales, maximizando la no-gaussianidad.
-- **Usos y aplicaciones**: procesamiento de señales biomédicas (ECG, EEG), eliminación de artefactos, problema del cóctel.
-- **Dataset utilizado**: MIT-BIH Arrhythmia Database P-Wave Annotations (12 registros ECG, 2 canales, 360 Hz).
-- **Resultados**: componentes independientes separados, análisis de kurtosis, detalle con anotaciones de onda P.
-- **Interpretación**: ver `outputs/ica/resumen_ica.md`.
+**Descripción teórica**: ICA es una técnica de separación ciega de fuentes que recupera señales independientes a partir de mezclas lineales desconocidas. Dado X = A·S, estima W ≈ A⁻¹ tal que S ≈ W·X, maximizando la no-gaussianidad (medida por kurtosis o negentropía). A diferencia de PCA, que solo decorrelaciona (orden 2), ICA capta dependencias de orden superior para lograr independencia estadística.
+
+**Usos y aplicaciones**: separación de fuentes en señales ECG/EEG (eliminar artefactos musculares u oculares), procesamiento de audio (problema del cóctel), y extracción de características independientes para clasificación.
+
+**Dataset utilizado**: MIT-BIH Arrhythmia Database P-Wave Annotations (PhysioNet) — 12 registros ECG de 2 canales (MLII + V1/V2/V5) a 360 Hz. Se analizaron registros 100, 119 y 207 con ventanas de 10 segundos.
+
+**Resultados**: FastICA separó 2 componentes independientes por registro. La kurtosis promedio de los componentes ICA (13.38) supera la de los canales originales (13.16), confirmando la maximización de no-gaussianidad. Las anotaciones de onda P coinciden con morfologías recurrentes en las componentes separadas.
+
+**Interpretación**: un componente tiende a capturar la actividad ventricular dominante (QRS), mientras que el otro aísla mejor las ondas P y T. La matriz de mezcla estimada revela la contribución de cada derivación. Limitaciones: solo 2 canales limitan la separación; el modelo asume mezcla lineal instantánea. Reporte completo: `outputs/ica/resumen_ica.md`.
 
 ---
 

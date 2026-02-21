@@ -1,4 +1,4 @@
-# SVD (Singular Value Decomposition)
+# SVD (Descomposición en Valores Singulares)
 
 ## 1. Descripción teórica
 
@@ -61,12 +61,23 @@ La Descomposición en Valores Singulares (SVD) factoriza una matriz A de dimensi
 - **Componentes utilizados**: 50
 - **Varianza explicada por el 1er componente**: 15.39%
 - **Varianza acumulada (primeros 5 componentes)**: 28.59%
-- **Componentes necesarios para 80% de varianza**: nan
-- **Componentes necesarios para 90% de varianza**: nan
+- **Varianza acumulada total (50 componentes)**: 52.35%
+- **Componentes necesarios para 80% de varianza**: >50 (no alcanzado con 50 componentes)
+- **Componentes necesarios para 90% de varianza**: >50 (no alcanzado con 50 componentes)
 
 ### Interpretación
 
 Los primeros componentes capturan los patrones de rating más globales (e.g., películas populares universalmente bien calificadas), mientras que los componentes posteriores capturan preferencias más específicas de nichos o géneros. La proyección 2D de películas (fig_svd_03) muestra agrupamientos por género, lo que confirma que SVD descubre factores latentes con interpretación semántica. El error de reconstrucción (fig_svd_04) decrece rápidamente con los primeros componentes, indicando que la información esencial de la matriz se concentra en pocas dimensiones. La tabla de top películas por componente revela qué títulos dominan cada factor latente.
+
+La varianza acumulada con 50 componentes alcanza solo el 52.35%, lo cual es esperado dado que la matriz usuario-película es altamente dispersa (densidad ~6.3%) y contiene mucha variabilidad individual. Esto implica que se necesitarían muchos más componentes para capturar la mayoría de la varianza, pero los primeros componentes ya contienen los patrones más informativos para recomendación.
+
+### Limitaciones
+
+- SVD asume una relación lineal entre los factores latentes; no captura interacciones no lineales en las preferencias de los usuarios.
+- La matriz de ratings tiene valores faltantes (celdas vacías = no calificado), que TruncatedSVD trata como ceros; esto puede sesgar los factores hacia películas populares con más ratings.
+- No considera información temporal: las preferencias de los usuarios pueden cambiar con el tiempo.
+- La interpretación de los factores latentes es subjetiva; no siempre corresponden a conceptos claros como géneros.
+- Con matrices muy dispersas como esta (~6% de densidad), la varianza explicada crece lentamente con el número de componentes.
 
 ### Figuras generadas
 

@@ -1,4 +1,4 @@
-# t-SNE (t-Distributed Stochastic Neighbor Embedding)
+# t-SNE (Incrustación Estocástica de Vecinos con Distribución t)
 
 ## 1. Descripción teórica
 
@@ -30,14 +30,14 @@ t-SNE es una técnica de reducción de dimensionalidad no lineal diseñada espec
 
 ### Principales usos en análisis de datos
 
-- **Visualización exploratoria**: proyectar datos multidimensionales a 2D para identificar clusters, outliers y patrones que no son evidentes en el espacio original.
-- **Validación de clusters**: verificar visualmente si los grupos encontrados por algoritmos de clustering son coherentes.
-- **Análisis de embeddings**: visualizar representaciones aprendidas por redes neuronales (word2vec, BERT, etc.).
+- **Visualización exploratoria**: proyectar datos multidimensionales a 2D para identificar agrupamientos, valores atípicos y patrones que no son evidentes en el espacio original.
+- **Validación de agrupamientos**: verificar visualmente si los grupos encontrados por algoritmos de agrupamiento son coherentes.
+- **Análisis de representaciones vectoriales**: visualizar representaciones aprendidas por redes neuronales (word2vec, BERT, etc.).
 
 ### Áreas de aplicación
 
-1. **Bioinformática y genómica**: visualización de datos de single-cell RNA-seq para identificar tipos celulares. t-SNE es estándar en herramientas como Seurat y Scanpy para revelar subpoblaciones celulares en miles de dimensiones génicas.
-2. **Diagnóstico médico por imágenes**: proyección de features extraídas de imágenes médicas (mamografías, histopatología) para visualizar la separación entre clases benignas y malignas, como en este ejercicio.
+1. **Bioinformática y genómica**: visualización de datos de RNA-seq de célula única para identificar tipos celulares. t-SNE es estándar en herramientas como Seurat y Scanpy para revelar subpoblaciones celulares en miles de dimensiones génicas.
+2. **Diagnóstico médico por imágenes**: proyección de características extraídas de imágenes médicas (mamografías, histopatología) para visualizar la separación entre clases benignas y malignas, como en este ejercicio.
 3. **Seguridad informática**: visualización de tráfico de red multidimensional para detectar patrones anómalos de intrusión o malware.
 
 ## 3. Aplicación práctica
@@ -46,46 +46,54 @@ t-SNE es una técnica de reducción de dimensionalidad no lineal diseñada espec
 
 - **Fuente**: Breast Cancer Wisconsin (Diagnostic), UCI / Kaggle
 - **Muestras**: 569 (tumores de mama)
-- **Features**: 30 características numéricas (radio, textura, perímetro, área, suavidad, compacidad, concavidad, puntos cóncavos, simetría, dimensión fractal — cada una con media, error estándar y peor valor)
+- **Características**: 30 variables numéricas (radio, textura, perímetro, área, suavidad, compacidad, concavidad, puntos cóncavos, simetría, dimensión fractal — cada una con media, error estándar y peor valor)
 - **Etiquetas**: Maligno (M) / Benigno (B)
 
 ### Decisiones de preprocesamiento
 
 - Se eliminaron las columnas `id` y `diagnosis` (esta última se conservó como etiqueta para colorear).
-- Se aplicó `StandardScaler` (media=0, desviación=1) a todas las features, necesario porque t-SNE es sensible a la escala de las variables.
+- Se aplicó `StandardScaler` (media=0, desviación=1) a todas las características, necesario porque t-SNE es sensible a la escala de las variables.
 
 ### Parámetros explorados
 
 | Parámetro | Valores |
 |---|---|
-| Perplexity | [5, 15, 30, 50] |
+| Perplejidad (perplexity) | [5, 15, 30, 50] |
 | Iteraciones | 1000 |
 | Inicialización | PCA |
-| Learning rate | auto |
+| Tasa de aprendizaje | auto |
 
 ### Resultados obtenidos
 
-- Perplexity=5: silhouette=0.425, KL=1.0961, tiempo=8.5s
-- Perplexity=15: silhouette=0.489, KL=1.0836, tiempo=4.8s
-- Perplexity=30: silhouette=0.466, KL=0.9532, tiempo=5.4s
-- Perplexity=50: silhouette=0.515, KL=0.8046, tiempo=6.5s
+- Perplexity=5: silueta=0.425, KL=1.0961, tiempo=5.3s
+- Perplexity=15: silueta=0.489, KL=1.0836, tiempo=3.9s
+- Perplexity=30: silueta=0.466, KL=0.9532, tiempo=4.0s
+- Perplexity=50: silueta=0.515, KL=0.8046, tiempo=6.5s
 
-**Mejor configuración**: perplexity=50 con silhouette=0.515
+**Mejor configuración**: perplexity=50 con silueta=0.515
 
 ### Interpretación
 
-La proyección t-SNE logra una separación visual clara entre tumores malignos y benignos. La mejor perplexity (50) produce clusters compactos y bien separados (silhouette=0.515). Perplexidades bajas (5) tienden a fragmentar los clusters en sub-grupos pequeños, mientras que valores altos producen proyecciones más globales pero menos definidas localmente. La divergencia KL baja (0.8046) indica que la distribución en 2D reproduce fielmente las relaciones de vecindad del espacio original. Es importante recordar que las distancias entre clusters en t-SNE no son directamente comparables; solo la cohesión interna de cada grupo es interpretable.
+La proyección t-SNE logra una separación visual clara entre tumores malignos y benignos. La mejor perplejidad (50) produce agrupamientos compactos y bien separados (silueta=0.515). Perplejidades bajas (5) tienden a fragmentar los agrupamientos en sub-grupos pequeños, mientras que valores altos producen proyecciones más globales pero menos definidas localmente. La divergencia KL baja (0.8046) indica que la distribución en 2D reproduce fielmente las relaciones de vecindad del espacio original. Es importante recordar que las distancias entre grupos en t-SNE no son directamente comparables; solo la cohesión interna de cada grupo es interpretable.
+
+### Limitaciones
+
+- **No preserva distancias globales**: las distancias entre grupos separados en la proyección no son interpretables; solo la estructura intra-grupo es confiable.
+- **Sensibilidad a la perplejidad**: distintos valores de perplejidad producen visualizaciones muy diferentes, lo que puede llevar a interpretaciones erróneas si no se exploran múltiples configuraciones.
+- **No determinístico**: cada ejecución sin semilla fija puede producir proyecciones diferentes, complicando la reproducibilidad.
+- **Escalabilidad limitada**: la complejidad O(n²) lo hace impracticable para datasets con más de ~10,000 observaciones sin técnicas de aproximación.
+- **No permite proyectar datos nuevos**: a diferencia de PCA o UMAP, no se puede aplicar la transformación aprendida a observaciones fuera del conjunto de entrenamiento.
 
 ### Figuras generadas
 
 | Figura | Descripción |
 |---|---|
-| fig_tsne_01 | Comparación de 4 perplexidades (grid 2×2) |
+| fig_tsne_01 | Comparación de 4 perplejidades (cuadrícula 2×2) |
 | fig_tsne_02 | Mejor proyección individual con leyenda |
 
 ### Tablas generadas
 
 | Tabla | Contenido |
 |---|---|
-| tsne_params_silhouette.csv | Silhouette, KL divergence y tiempo por perplexity |
+| tsne_params_silhouette.csv | Silueta, divergencia KL y tiempo por perplejidad |
 | tsne_best_coords.csv | Coordenadas 2D de la mejor proyección |

@@ -1,4 +1,4 @@
-# UMAP (Uniform Manifold Approximation and Projection)
+# UMAP (Aproximación y Proyección Uniforme de Variedades)
 
 ## 1. Descripción teórica
 
@@ -31,12 +31,12 @@ UMAP es una técnica de reducción de dimensionalidad no lineal fundamentada en 
 ### Principales usos en análisis de datos
 
 - **Visualización de datos de alta dimensión**: alternativa más rápida y con mejor preservación global que t-SNE.
-- **Preprocesamiento para clustering**: las proyecciones UMAP pueden usarse como entrada para algoritmos de clustering (HDBSCAN, KMeans) mejorando la separación.
-- **Exploración de embeddings**: visualización de representaciones de redes neuronales, word embeddings, y features aprendidas.
+- **Preprocesamiento para agrupamiento**: las proyecciones UMAP pueden usarse como entrada para algoritmos de agrupamiento (HDBSCAN, KMeans) mejorando la separación.
+- **Exploración de representaciones vectoriales**: visualización de representaciones de redes neuronales, vectores de palabras y características aprendidas.
 
 ### Áreas de aplicación
 
-1. **Genómica y single-cell analysis**: UMAP ha reemplazado parcialmente a t-SNE como estándar de visualización en transcriptómica de célula única gracias a su velocidad y mejor preservación de la estructura global entre tipos celulares.
+1. **Genómica y análisis de célula única**: UMAP ha reemplazado parcialmente a t-SNE como estándar de visualización en transcriptómica de célula única gracias a su velocidad y mejor preservación de la estructura global entre tipos celulares.
 2. **Detección de anomalías en ciberseguridad**: proyección de vectores de características de tráfico de red para identificar visualmente comportamientos anómalos y ataques que se separan de los patrones normales.
 3. **Investigación farmacéutica**: visualización de espacios químicos de alta dimensión (descriptores moleculares) para identificar familias de compuestos y candidatos a fármacos.
 
@@ -46,7 +46,7 @@ UMAP es una técnica de reducción de dimensionalidad no lineal fundamentada en 
 
 - **Fuente**: Breast Cancer Wisconsin (Diagnostic), UCI / Kaggle
 - **Muestras**: 569
-- **Features**: 30 (10 medidas × 3 estadísticos: media, error estándar, peor valor)
+- **Características**: 30 (10 medidas × 3 estadísticos: media, error estándar, peor valor)
 - **Etiquetas**: Maligno (M) / Benigno (B)
 
 ### Decisiones de preprocesamiento
@@ -64,26 +64,34 @@ UMAP es una técnica de reducción de dimensionalidad no lineal fundamentada en 
 
 ### Resultados obtenidos
 
-- n_neighbors=5, min_dist=0.1: silhouette=0.515, tiempo=23.3s
-- n_neighbors=5, min_dist=0.5: silhouette=0.429, tiempo=1.3s
-- n_neighbors=15, min_dist=0.1: silhouette=0.448, tiempo=1.9s
-- n_neighbors=15, min_dist=0.5: silhouette=0.424, tiempo=1.9s
-- n_neighbors=30, min_dist=0.1: silhouette=0.493, tiempo=2.3s
-- n_neighbors=30, min_dist=0.5: silhouette=0.446, tiempo=2.3s
-- n_neighbors=50, min_dist=0.1: silhouette=0.445, tiempo=2.8s
-- n_neighbors=50, min_dist=0.5: silhouette=0.460, tiempo=3.7s
+- n_neighbors=5, min_dist=0.1: silueta=0.515, tiempo=13.0s
+- n_neighbors=5, min_dist=0.5: silueta=0.429, tiempo=1.1s
+- n_neighbors=15, min_dist=0.1: silueta=0.448, tiempo=1.5s
+- n_neighbors=15, min_dist=0.5: silueta=0.424, tiempo=1.5s
+- n_neighbors=30, min_dist=0.1: silueta=0.493, tiempo=1.9s
+- n_neighbors=30, min_dist=0.5: silueta=0.446, tiempo=1.8s
+- n_neighbors=50, min_dist=0.1: silueta=0.445, tiempo=2.2s
+- n_neighbors=50, min_dist=0.5: silueta=0.460, tiempo=2.2s
 
-**Mejor configuración**: n_neighbors=5, min_dist=0.1 con silhouette=0.515
+**Mejor configuración**: n_neighbors=5, min_dist=0.1 con silueta=0.515
 
 ### Interpretación
 
-UMAP produce una separación clara entre tumores malignos y benignos con la mejor configuración (n_neighbors=5, min_dist=0.1, silhouette=0.515). El parámetro n_neighbors tiene el mayor impacto: valores pequeños (5) generan clusters más fragmentados con estructura local detallada, mientras que valores grandes (50) producen proyecciones más suaves que capturan la separación global. El min_dist controla la compacidad visual: con min_dist=0.1 los puntos se agrupan densamente, con min_dist=0.5 se dispersan más. Comparado con t-SNE, UMAP tiende a mantener mejor las distancias relativas entre clusters (no solo dentro de ellos), haciendo que la separación espacial entre los grupos M y B sea más interpretable.
+UMAP produce una separación clara entre tumores malignos y benignos con la mejor configuración (n_neighbors=5, min_dist=0.1, silueta=0.515). El parámetro n_neighbors tiene el mayor impacto: valores pequeños (5) generan agrupamientos más fragmentados con estructura local detallada, mientras que valores grandes (50) producen proyecciones más suaves que capturan la separación global. El min_dist controla la compacidad visual: con min_dist=0.1 los puntos se agrupan densamente, con min_dist=0.5 se dispersan más. Comparado con t-SNE, UMAP tiende a mantener mejor las distancias relativas entre grupos (no solo dentro de ellos), haciendo que la separación espacial entre los grupos M y B sea más interpretable.
+
+### Limitaciones
+
+- **Dependencia de hiperparámetros**: los resultados varían significativamente con n_neighbors y min_dist; no existe una combinación universalmente óptima y se requiere exploración sistemática.
+- **Fundamento teórico complejo**: la justificación matemática (topología algebraica, conjuntos simpliciales difusos) es más difícil de comunicar e interpretar que la de PCA o SVD.
+- **Estocástico**: aunque más estable que t-SNE, los resultados pueden variar entre ejecuciones sin semilla fija.
+- **Sensibilidad a la escala**: como otros métodos basados en distancias, requiere normalización previa de las características.
+- **No preserva varianza**: a diferencia de PCA/SVD, no existe un concepto de 'varianza explicada' que permita evaluar cuánta información se retiene en la proyección.
 
 ### Figuras generadas
 
 | Figura | Descripción |
 |---|---|
-| fig_umap_01 | Comparación de n_neighbors (grid 2×2, min_dist=0.1) |
+| fig_umap_01 | Comparación de n_neighbors (cuadrícula 2×2, min_dist=0.1) |
 | fig_umap_02 | Efecto de min_dist (n_neighbors=15) |
 | fig_umap_03 | Mejor proyección individual con leyenda |
 | fig_comparison_tsne_vs_umap | Comparación lado a lado con t-SNE |
@@ -92,5 +100,5 @@ UMAP produce una separación clara entre tumores malignos y benignos con la mejo
 
 | Tabla | Contenido |
 |---|---|
-| umap_params_silhouette.csv | Silhouette y tiempo por configuración |
+| umap_params_silhouette.csv | Silueta y tiempo por configuración |
 | umap_best_coords.csv | Coordenadas 2D de la mejor proyección |

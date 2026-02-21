@@ -38,8 +38,8 @@ LABEL_NAMES = {"M": "Maligno", "B": "Benigno"}
 # ─────────────────────────────── Data ───────────────────────────────
 
 def load_breast_cancer(data_path: str):
+    """Carga el dataset y separa features de etiquetas (M=Maligno, B=Benigno)."""
     df = pd.read_csv(data_path, encoding="utf-8")
-    # Limpiar columna residual sin nombre al final
     df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
     labels = df["diagnosis"].values
     feature_df = df.drop(columns=["id", "diagnosis"])
@@ -47,6 +47,11 @@ def load_breast_cancer(data_path: str):
 
 
 def preprocess(feature_df: pd.DataFrame):
+    """Estandariza las features a media=0 y desviación=1.
+
+    Necesario porque t-SNE y UMAP son sensibles a la escala: variables
+    con rangos grandes dominarían el cálculo de distancias.
+    """
     scaler = StandardScaler()
     X = scaler.fit_transform(feature_df.values)
     return X
@@ -55,7 +60,13 @@ def preprocess(feature_df: pd.DataFrame):
 # ─────────────────────────────── t-SNE ──────────────────────────────
 
 def run_tsne_grid(X, labels, output_dir: str, seed: int):
-    """Ejecuta t-SNE con distintas perplexidades y genera comparación."""
+    """Ejecuta t-SNE con distintas perplejidades y genera comparación.
+
+    La perplejidad controla cuántos vecinos efectivos considera cada punto:
+    valores bajos → estructura local fina, valores altos → visión más global.
+    Se evalúa cada configuración con la métrica de silueta sobre las
+    etiquetas reales para medir la calidad de separación visual.
+    """
     _ensure(output_dir)
 
     perplexities = [5, 15, 30, 50]
@@ -138,7 +149,12 @@ def run_tsne_grid(X, labels, output_dir: str, seed: int):
 # ─────────────────────────────── UMAP ───────────────────────────────
 
 def run_umap_grid(X, labels, output_dir: str, seed: int):
-    """Ejecuta UMAP con distintos n_neighbors y min_dist."""
+    """Ejecuta UMAP con distintos n_neighbors y min_dist.
+
+    n_neighbors: tamaño del vecindario local (balance local/global).
+    min_dist: distancia mínima entre puntos en la proyección (compacidad).
+    Se evalúa cada combinación con silueta sobre etiquetas reales.
+    """
     _ensure(output_dir)
 
     neighbors_list = [5, 15, 30, 50]
@@ -421,11 +437,30 @@ def write_tsne_summary(metrics_path: str, output_dir: str,
             f"original. Es importante recordar que las distancias entre "
             f"grupos en t-SNE no son directamente comparables; solo la "
             f"cohesión interna de cada grupo es interpretable.\n\n")
+        f.write("### Limitaciones\n\n")
+        f.write(
+            "- **No preserva distancias globales**: las distancias entre "
+            "grupos separados en la proyección no son interpretables; solo "
+            "la estructura intra-grupo es confiable.\n"
+            "- **Sensibilidad a la perplejidad**: distintos valores de "
+            "perplejidad producen visualizaciones muy diferentes, lo que "
+            "puede llevar a interpretaciones erróneas si no se exploran "
+            "múltiples configuraciones.\n"
+            "- **No determinístico**: cada ejecución sin semilla fija puede "
+            "producir proyecciones diferentes, complicando la "
+            "reproducibilidad.\n"
+            "- **Escalabilidad limitada**: la complejidad O(n²) lo hace "
+            "impracticable para datasets con más de ~10,000 observaciones "
+            "sin técnicas de aproximación.\n"
+            "- **No permite proyectar datos nuevos**: a diferencia de PCA "
+            "o UMAP, no se puede aplicar la transformación aprendida a "
+            "observaciones fuera del conjunto de entrenamiento.\n\n")
         f.write("### Figuras generadas\n\n")
         f.write(
             "| Figura | Descripción |\n"
             "|---|---|\n"
-            "| fig_tsne_01 | Comparación de 4 perplexidades (grid 2×2) |\n"
+            "| fig_tsne_01 | Comparación de 4 perplejidades (cuadrícula "
+            "2×2) |\n"
             "| fig_tsne_02 | Mejor proyección individual con leyenda |\n\n")
         f.write("### Tablas generadas\n\n")
         f.write(
@@ -573,11 +608,29 @@ def write_umap_summary(metrics_path: str, output_dir: str,
             f"grupos (no solo dentro de ellos), haciendo que la separación "
             f"espacial entre los grupos M y B sea más "
             f"interpretable.\n\n")
+        f.write("### Limitaciones\n\n")
+        f.write(
+            "- **Dependencia de hiperparámetros**: los resultados varían "
+            "significativamente con n_neighbors y min_dist; no existe una "
+            "combinación universalmente óptima y se requiere exploración "
+            "sistemática.\n"
+            "- **Fundamento teórico complejo**: la justificación matemática "
+            "(topología algebraica, conjuntos simpliciales difusos) es más "
+            "difícil de comunicar e interpretar que la de PCA o SVD.\n"
+            "- **Estocástico**: aunque más estable que t-SNE, los "
+            "resultados pueden variar entre ejecuciones sin semilla "
+            "fija.\n"
+            "- **Sensibilidad a la escala**: como otros métodos basados en "
+            "distancias, requiere normalización previa de las "
+            "características.\n"
+            "- **No preserva varianza**: a diferencia de PCA/SVD, no "
+            "existe un concepto de 'varianza explicada' que permita "
+            "evaluar cuánta información se retiene en la proyección.\n\n")
         f.write("### Figuras generadas\n\n")
         f.write(
             "| Figura | Descripción |\n"
             "|---|---|\n"
-            "| fig_umap_01 | Comparación de n_neighbors (grid 2×2, "
+            "| fig_umap_01 | Comparación de n_neighbors (cuadrícula 2×2, "
             "min_dist=0.1) |\n"
             "| fig_umap_02 | Efecto de min_dist (n_neighbors=15) |\n"
             "| fig_umap_03 | Mejor proyección individual con leyenda |\n"
