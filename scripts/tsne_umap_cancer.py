@@ -413,63 +413,73 @@ def write_tsne_summary(metrics_path: str, output_dir: str,
             f"| Inicialización | PCA |\n"
             f"| Tasa de aprendizaje | auto |\n\n")
         f.write("### Resultados obtenidos\n\n")
+
+        # Tabla 1: Métricas por perplejidad
+        f.write("**Tabla 1.** Métricas de t-SNE para cada valor de "
+                "perplejidad explorado.\n\n")
+        f.write("| Perplejidad | Silueta | Divergencia KL | Tiempo (s) |\n"
+                "|---|---|---|---|\n")
         for _, row in metrics.iterrows():
-            f.write(
-                f"- Perplexity={int(row['perplexity'])}: "
-                f"silueta={row['silhouette']:.3f}, "
-                f"KL={row['kl_divergence']:.4f}, "
-                f"tiempo={row['tiempo_s']:.1f}s\n")
+            f.write(f"| {int(row['perplexity'])} | "
+                    f"{row['silhouette']:.3f} | "
+                    f"{row['kl_divergence']:.4f} | "
+                    f"{row['tiempo_s']:.1f} |\n")
         f.write(
-            f"\n**Mejor configuración**: perplexity={int(best['perplexity'])} "
+            f"\n**Mejor configuración**: perplejidad="
+            f"{int(best['perplexity'])} "
             f"con silueta={best['silhouette']:.3f}\n\n")
+
+        # Figura 1: Grid de perplejidades
+        f.write("![Figura 1](fig_tsne_01_perplexity_comparison.png)\n\n")
+        f.write("**Figura 1.** Proyecciones t-SNE con cuatro valores de "
+                "perplejidad. Colores: rojo = maligno, azul = benigno. "
+                "Perplejidades bajas producen agrupamientos más "
+                "fragmentados; valores altos generan separaciones más "
+                "suaves y globales.\n\n")
+
+        # Figura 2: Mejor proyección
+        f.write("![Figura 2](fig_tsne_02_best_projection.png)\n\n")
+        f.write(f"**Figura 2.** Mejor proyección t-SNE "
+                f"(perplejidad={int(best['perplexity'])}, "
+                f"silueta={best['silhouette']:.3f}). Se observa una "
+                f"separación clara entre tumores malignos (rojo) y "
+                f"benignos (azul), con mínima superposición entre "
+                f"clases.\n\n")
+
         f.write("### Interpretación\n\n")
         f.write(
             f"La proyección t-SNE logra una separación visual clara entre "
-            f"tumores malignos y benignos. La mejor perplejidad "
-            f"({int(best['perplexity'])}) produce agrupamientos compactos y "
-            f"bien separados (silueta={best['silhouette']:.3f}). "
-            f"Perplejidades bajas ({int(worst['perplexity'])}) tienden a "
-            f"fragmentar los agrupamientos en sub-grupos pequeños, mientras "
-            f"que valores altos producen proyecciones más globales pero "
-            f"menos definidas localmente. La divergencia KL baja "
-            f"({best['kl_divergence']:.4f}) indica que la distribución en "
-            f"2D reproduce fielmente las relaciones de vecindad del espacio "
-            f"original. Es importante recordar que las distancias entre "
-            f"grupos en t-SNE no son directamente comparables; solo la "
-            f"cohesión interna de cada grupo es interpretable.\n\n")
+            f"tumores malignos y benignos (Figura 2). La Tabla 1 muestra "
+            f"que la mejor perplejidad ({int(best['perplexity'])}) produce "
+            f"agrupamientos compactos y bien separados "
+            f"(silueta={best['silhouette']:.3f}). Como se observa en la "
+            f"Figura 1, perplejidades bajas ({int(worst['perplexity'])}) "
+            f"tienden a fragmentar los agrupamientos en sub-grupos "
+            f"pequeños, mientras que valores altos producen proyecciones "
+            f"más globales pero menos definidas localmente. La divergencia "
+            f"KL baja ({best['kl_divergence']:.4f}) indica que la "
+            f"distribución en 2D reproduce fielmente las relaciones de "
+            f"vecindad del espacio original. Es importante recordar que "
+            f"las distancias entre grupos en t-SNE no son directamente "
+            f"comparables; solo la cohesión interna de cada grupo es "
+            f"interpretable.\n\n")
         f.write("### Limitaciones\n\n")
         f.write(
             "- **No preserva distancias globales**: las distancias entre "
             "grupos separados en la proyección no son interpretables; solo "
             "la estructura intra-grupo es confiable.\n"
-            "- **Sensibilidad a la perplejidad**: distintos valores de "
-            "perplejidad producen visualizaciones muy diferentes, lo que "
-            "puede llevar a interpretaciones erróneas si no se exploran "
-            "múltiples configuraciones.\n"
+            "- **Sensibilidad a la perplejidad**: distintos valores "
+            "producen visualizaciones muy diferentes (ver Figura 1), lo "
+            "que puede llevar a interpretaciones erróneas si no se "
+            "exploran múltiples configuraciones.\n"
             "- **No determinístico**: cada ejecución sin semilla fija puede "
-            "producir proyecciones diferentes, complicando la "
-            "reproducibilidad.\n"
+            "producir proyecciones diferentes.\n"
             "- **Escalabilidad limitada**: la complejidad O(n²) lo hace "
             "impracticable para datasets con más de ~10,000 observaciones "
             "sin técnicas de aproximación.\n"
             "- **No permite proyectar datos nuevos**: a diferencia de PCA "
             "o UMAP, no se puede aplicar la transformación aprendida a "
-            "observaciones fuera del conjunto de entrenamiento.\n\n")
-        f.write("### Figuras generadas\n\n")
-        f.write(
-            "| Figura | Descripción |\n"
-            "|---|---|\n"
-            "| fig_tsne_01 | Comparación de 4 perplejidades (cuadrícula "
-            "2×2) |\n"
-            "| fig_tsne_02 | Mejor proyección individual con leyenda |\n\n")
-        f.write("### Tablas generadas\n\n")
-        f.write(
-            "| Tabla | Contenido |\n"
-            "|---|---|\n"
-            "| tsne_params_silhouette.csv | Silueta, divergencia KL y "
-            "tiempo por perplejidad |\n"
-            "| tsne_best_coords.csv | Coordenadas 2D de la mejor "
-            "proyección |\n")
+            "observaciones nuevas.\n")
 
 
 def write_umap_summary(metrics_path: str, output_dir: str,
@@ -581,69 +591,86 @@ def write_umap_summary(metrics_path: str, output_dir: str,
             f"| min_dist | {md_list} |\n"
             f"| n_components | 2 |\n\n")
         f.write("### Resultados obtenidos\n\n")
+
+        # Tabla 1: Métricas por configuración
+        f.write("**Tabla 1.** Métricas de UMAP para cada combinación de "
+                "hiperparámetros.\n\n")
+        f.write("| n_neighbors | min_dist | Silueta | Tiempo (s) |\n"
+                "|---|---|---|---|\n")
         for _, row in metrics.iterrows():
-            f.write(
-                f"- n_neighbors={int(row['n_neighbors'])}, "
-                f"min_dist={row['min_dist']}: "
-                f"silueta={row['silhouette']:.3f}, "
-                f"tiempo={row['tiempo_s']:.1f}s\n")
+            f.write(f"| {int(row['n_neighbors'])} | "
+                    f"{row['min_dist']} | "
+                    f"{row['silhouette']:.3f} | "
+                    f"{row['tiempo_s']:.1f} |\n")
         f.write(
             f"\n**Mejor configuración**: n_neighbors="
             f"{int(best['n_neighbors'])}, min_dist={best['min_dist']} "
             f"con silueta={best['silhouette']:.3f}\n\n")
+
+        # Figura 1: Grid de n_neighbors
+        f.write("![Figura 1](fig_umap_01_neighbors_comparison.png)\n\n")
+        f.write("**Figura 1.** Efecto de n_neighbors sobre la proyección "
+                "UMAP (min_dist=0.1 fijo). Valores pequeños enfatizan "
+                "estructura local (agrupamientos más fragmentados); "
+                "valores grandes producen proyecciones más suaves con "
+                "mejor separación global.\n\n")
+
+        # Figura 2: Efecto de min_dist
+        f.write("![Figura 2](fig_umap_02_mindist_comparison.png)\n\n")
+        f.write("**Figura 2.** Efecto de min_dist sobre la proyección "
+                "UMAP (n_neighbors=15 fijo). Con min_dist=0.1 los puntos "
+                "se agrupan densamente; con min_dist=0.5 se dispersan, "
+                "proporcionando mayor separación visual entre "
+                "observaciones.\n\n")
+
+        # Figura 3: Mejor proyección
+        f.write("![Figura 3](fig_umap_03_best_projection.png)\n\n")
+        f.write(f"**Figura 3.** Mejor proyección UMAP "
+                f"(n_neighbors={int(best['n_neighbors'])}, "
+                f"min_dist={best['min_dist']}, "
+                f"silueta={best['silhouette']:.3f}). Rojo = maligno, "
+                f"azul = benigno.\n\n")
+
+        # Figura 4: Comparación t-SNE vs UMAP
+        f.write("![Figura 4](fig_comparison_tsne_vs_umap.png)\n\n")
+        f.write("**Figura 4.** Comparación lado a lado de las mejores "
+                "proyecciones t-SNE (izquierda) y UMAP (derecha) sobre "
+                "el mismo dataset. UMAP tiende a mantener mejor las "
+                "distancias relativas entre los grupos maligno y "
+                "benigno.\n\n")
+
         f.write("### Interpretación\n\n")
         f.write(
             f"UMAP produce una separación clara entre tumores malignos y "
-            f"benignos con la mejor configuración (n_neighbors="
-            f"{int(best['n_neighbors'])}, min_dist={best['min_dist']}, "
-            f"silueta={best['silhouette']:.3f}). "
-            f"El parámetro n_neighbors tiene el mayor impacto: valores "
-            f"pequeños (5) generan agrupamientos más fragmentados con "
-            f"estructura local detallada, mientras que valores grandes (50) "
+            f"benignos (Figura 3). La Tabla 1 muestra que n_neighbors "
+            f"tiene el mayor impacto: valores pequeños (5) generan "
+            f"agrupamientos más fragmentados con estructura local "
+            f"detallada (Figura 1), mientras que valores grandes (50) "
             f"producen proyecciones más suaves que capturan la separación "
-            f"global. El min_dist controla la compacidad visual: con "
-            f"min_dist=0.1 los puntos se agrupan densamente, con "
-            f"min_dist=0.5 se dispersan más. Comparado con t-SNE, UMAP "
-            f"tiende a mantener mejor las distancias relativas entre "
-            f"grupos (no solo dentro de ellos), haciendo que la separación "
-            f"espacial entre los grupos M y B sea más "
-            f"interpretable.\n\n")
+            f"global. El min_dist controla la compacidad visual (Figura "
+            f"2): con min_dist=0.1 los puntos se agrupan densamente, con "
+            f"min_dist=0.5 se dispersan más.\n\n"
+            f"La Figura 4 compara las mejores configuraciones de t-SNE y "
+            f"UMAP. UMAP tiende a mantener mejor las distancias relativas "
+            f"entre grupos (no solo dentro de ellos), haciendo que la "
+            f"separación espacial entre los grupos M y B sea más "
+            f"interpretable que en t-SNE.\n\n")
         f.write("### Limitaciones\n\n")
         f.write(
             "- **Dependencia de hiperparámetros**: los resultados varían "
-            "significativamente con n_neighbors y min_dist; no existe una "
-            "combinación universalmente óptima y se requiere exploración "
-            "sistemática.\n"
+            "significativamente con n_neighbors y min_dist (ver Figuras 1 "
+            "y 2); no existe una combinación universalmente óptima.\n"
             "- **Fundamento teórico complejo**: la justificación matemática "
             "(topología algebraica, conjuntos simpliciales difusos) es más "
-            "difícil de comunicar e interpretar que la de PCA o SVD.\n"
+            "difícil de comunicar que la de PCA o SVD.\n"
             "- **Estocástico**: aunque más estable que t-SNE, los "
             "resultados pueden variar entre ejecuciones sin semilla "
             "fija.\n"
-            "- **Sensibilidad a la escala**: como otros métodos basados en "
-            "distancias, requiere normalización previa de las "
-            "características.\n"
+            "- **Sensibilidad a la escala**: requiere normalización previa "
+            "de las características.\n"
             "- **No preserva varianza**: a diferencia de PCA/SVD, no "
             "existe un concepto de 'varianza explicada' que permita "
-            "evaluar cuánta información se retiene en la proyección.\n\n")
-        f.write("### Figuras generadas\n\n")
-        f.write(
-            "| Figura | Descripción |\n"
-            "|---|---|\n"
-            "| fig_umap_01 | Comparación de n_neighbors (cuadrícula 2×2, "
-            "min_dist=0.1) |\n"
-            "| fig_umap_02 | Efecto de min_dist (n_neighbors=15) |\n"
-            "| fig_umap_03 | Mejor proyección individual con leyenda |\n"
-            "| fig_comparison_tsne_vs_umap | Comparación lado a lado con "
-            "t-SNE |\n\n")
-        f.write("### Tablas generadas\n\n")
-        f.write(
-            "| Tabla | Contenido |\n"
-            "|---|---|\n"
-            "| umap_params_silhouette.csv | Silueta y tiempo por "
-            "configuración |\n"
-            "| umap_best_coords.csv | Coordenadas 2D de la mejor "
-            "proyección |\n")
+            "evaluar cuánta información se retiene en la proyección.\n")
 
 
 # ─────────────────────────────── Main ───────────────────────────────

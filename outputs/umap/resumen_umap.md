@@ -64,41 +64,47 @@ UMAP es una técnica de reducción de dimensionalidad no lineal fundamentada en 
 
 ### Resultados obtenidos
 
-- n_neighbors=5, min_dist=0.1: silueta=0.515, tiempo=13.0s
-- n_neighbors=5, min_dist=0.5: silueta=0.429, tiempo=1.1s
-- n_neighbors=15, min_dist=0.1: silueta=0.448, tiempo=1.5s
-- n_neighbors=15, min_dist=0.5: silueta=0.424, tiempo=1.5s
-- n_neighbors=30, min_dist=0.1: silueta=0.493, tiempo=1.9s
-- n_neighbors=30, min_dist=0.5: silueta=0.446, tiempo=1.8s
-- n_neighbors=50, min_dist=0.1: silueta=0.445, tiempo=2.2s
-- n_neighbors=50, min_dist=0.5: silueta=0.460, tiempo=2.2s
+**Tabla 1.** Métricas de UMAP para cada combinación de hiperparámetros.
+
+| n_neighbors | min_dist | Silueta | Tiempo (s) |
+|---|---|---|---|
+| 5 | 0.1 | 0.515 | 12.3 |
+| 5 | 0.5 | 0.429 | 1.0 |
+| 15 | 0.1 | 0.448 | 1.5 |
+| 15 | 0.5 | 0.424 | 1.5 |
+| 30 | 0.1 | 0.493 | 2.3 |
+| 30 | 0.5 | 0.446 | 2.3 |
+| 50 | 0.1 | 0.445 | 2.6 |
+| 50 | 0.5 | 0.460 | 2.2 |
 
 **Mejor configuración**: n_neighbors=5, min_dist=0.1 con silueta=0.515
 
+![Figura 1](fig_umap_01_neighbors_comparison.png)
+
+**Figura 1.** Efecto de n_neighbors sobre la proyección UMAP (min_dist=0.1 fijo). Valores pequeños enfatizan estructura local (agrupamientos más fragmentados); valores grandes producen proyecciones más suaves con mejor separación global.
+
+![Figura 2](fig_umap_02_mindist_comparison.png)
+
+**Figura 2.** Efecto de min_dist sobre la proyección UMAP (n_neighbors=15 fijo). Con min_dist=0.1 los puntos se agrupan densamente; con min_dist=0.5 se dispersan, proporcionando mayor separación visual entre observaciones.
+
+![Figura 3](fig_umap_03_best_projection.png)
+
+**Figura 3.** Mejor proyección UMAP (n_neighbors=5, min_dist=0.1, silueta=0.515). Rojo = maligno, azul = benigno.
+
+![Figura 4](fig_comparison_tsne_vs_umap.png)
+
+**Figura 4.** Comparación lado a lado de las mejores proyecciones t-SNE (izquierda) y UMAP (derecha) sobre el mismo dataset. UMAP tiende a mantener mejor las distancias relativas entre los grupos maligno y benigno.
+
 ### Interpretación
 
-UMAP produce una separación clara entre tumores malignos y benignos con la mejor configuración (n_neighbors=5, min_dist=0.1, silueta=0.515). El parámetro n_neighbors tiene el mayor impacto: valores pequeños (5) generan agrupamientos más fragmentados con estructura local detallada, mientras que valores grandes (50) producen proyecciones más suaves que capturan la separación global. El min_dist controla la compacidad visual: con min_dist=0.1 los puntos se agrupan densamente, con min_dist=0.5 se dispersan más. Comparado con t-SNE, UMAP tiende a mantener mejor las distancias relativas entre grupos (no solo dentro de ellos), haciendo que la separación espacial entre los grupos M y B sea más interpretable.
+UMAP produce una separación clara entre tumores malignos y benignos (Figura 3). La Tabla 1 muestra que n_neighbors tiene el mayor impacto: valores pequeños (5) generan agrupamientos más fragmentados con estructura local detallada (Figura 1), mientras que valores grandes (50) producen proyecciones más suaves que capturan la separación global. El min_dist controla la compacidad visual (Figura 2): con min_dist=0.1 los puntos se agrupan densamente, con min_dist=0.5 se dispersan más.
+
+La Figura 4 compara las mejores configuraciones de t-SNE y UMAP. UMAP tiende a mantener mejor las distancias relativas entre grupos (no solo dentro de ellos), haciendo que la separación espacial entre los grupos M y B sea más interpretable que en t-SNE.
 
 ### Limitaciones
 
-- **Dependencia de hiperparámetros**: los resultados varían significativamente con n_neighbors y min_dist; no existe una combinación universalmente óptima y se requiere exploración sistemática.
-- **Fundamento teórico complejo**: la justificación matemática (topología algebraica, conjuntos simpliciales difusos) es más difícil de comunicar e interpretar que la de PCA o SVD.
+- **Dependencia de hiperparámetros**: los resultados varían significativamente con n_neighbors y min_dist (ver Figuras 1 y 2); no existe una combinación universalmente óptima.
+- **Fundamento teórico complejo**: la justificación matemática (topología algebraica, conjuntos simpliciales difusos) es más difícil de comunicar que la de PCA o SVD.
 - **Estocástico**: aunque más estable que t-SNE, los resultados pueden variar entre ejecuciones sin semilla fija.
-- **Sensibilidad a la escala**: como otros métodos basados en distancias, requiere normalización previa de las características.
+- **Sensibilidad a la escala**: requiere normalización previa de las características.
 - **No preserva varianza**: a diferencia de PCA/SVD, no existe un concepto de 'varianza explicada' que permita evaluar cuánta información se retiene en la proyección.
-
-### Figuras generadas
-
-| Figura | Descripción |
-|---|---|
-| fig_umap_01 | Comparación de n_neighbors (cuadrícula 2×2, min_dist=0.1) |
-| fig_umap_02 | Efecto de min_dist (n_neighbors=15) |
-| fig_umap_03 | Mejor proyección individual con leyenda |
-| fig_comparison_tsne_vs_umap | Comparación lado a lado con t-SNE |
-
-### Tablas generadas
-
-| Tabla | Contenido |
-|---|---|
-| umap_params_silhouette.csv | Silueta y tiempo por configuración |
-| umap_best_coords.csv | Coordenadas 2D de la mejor proyección |

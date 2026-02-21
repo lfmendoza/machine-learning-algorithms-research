@@ -433,9 +433,41 @@ def write_summary(all_ica_results: dict, kurtosis_df: pd.DataFrame,
             "| Whitening | unit-variance |\n"
             "| Iteraciones máximas | 1000 |\n\n")
         f.write("### Resultados obtenidos\n\n")
-        f.write("**Kurtosis por registro y componente:**\n\n")
+
+        # Figuras de señales originales e ICA por registro
+        fig_num = 1
+        for rec in records_list:
+            f.write(f"![Figura {fig_num}]"
+                    f"(fig_ica_01_originales_{rec}.png)\n\n")
+            f.write(f"**Figura {fig_num}.** Señales ECG originales del "
+                    f"registro {rec}. Cada canal (derivación) muestra una "
+                    f"mezcla diferente de la misma actividad cardíaca. "
+                    f"Las líneas verticales rojas indican las anotaciones "
+                    f"de onda P.\n\n")
+            fig_num += 1
+
+            f.write(f"![Figura {fig_num}]"
+                    f"(fig_ica_02_componentes_{rec}.png)\n\n")
+            f.write(f"**Figura {fig_num}.** Componentes independientes "
+                    f"extraídos por FastICA del registro {rec}. Cada IC "
+                    f"representa una fuente estadísticamente independiente "
+                    f"separada de las mezclas originales.\n\n")
+            fig_num += 1
+
+            f.write(f"![Figura {fig_num}]"
+                    f"(fig_ica_03_comparacion_{rec}.png)\n\n")
+            f.write(f"**Figura {fig_num}.** Comparación lado a lado entre "
+                    f"señales originales (izquierda) y componentes ICA "
+                    f"(derecha) para el registro {rec}.\n\n")
+            fig_num += 1
+
+        # Tabla 1: Kurtosis
+        f.write("**Tabla 1.** Kurtosis (Fisher) de los canales originales "
+                "y los componentes ICA por registro. Una kurtosis mayor "
+                "indica distribuciones más impulsivas "
+                "(mayor no-gaussianidad).\n\n")
         f.write(
-            "| Registro | Canal original | Kurtosis orig. | IC | "
+            "| Registro | Canal original | Kurtosis orig. | Componente | "
             "Kurtosis IC |\n"
             "|---|---|---|---|---|\n")
         for _, row in kurtosis_df.iterrows():
@@ -444,28 +476,50 @@ def write_summary(all_ica_results: dict, kurtosis_df: pd.DataFrame,
                 f"{row['kurtosis_original']:.2f} | {row['componente_ic']} | "
                 f"{row['kurtosis_ic']:.2f} |\n")
         f.write(
-            f"\n- **Kurtosis promedio (|valor|)**: originales={avg_k_orig:.2f}"
-            f", ICA={avg_k_ic:.2f}\n\n")
+            f"\nKurtosis promedio (|valor|): originales = {avg_k_orig:.2f}, "
+            f"ICA = {avg_k_ic:.2f}\n\n")
+
+        # Figura kurtosis
+        f.write(f"![Figura {fig_num}](fig_ica_04_kurtosis.png)\n\n")
+        f.write(f"**Figura {fig_num}.** Comparación de kurtosis entre "
+                f"canales originales e componentes ICA para cada registro. "
+                f"Los componentes ICA tienden a presentar mayor "
+                f"no-gaussianidad, confirmando la maximización de "
+                f"independencia estadística.\n\n")
+        fig_num += 1
+
+        # Figuras de detalle P-wave
+        for rec in records_list:
+            pw_file = f"fig_ica_05_pwave_{rec}.png"
+            pw_path = os.path.join(output_dir, pw_file)
+            if os.path.isfile(pw_path):
+                f.write(f"![Figura {fig_num}]({pw_file})\n\n")
+                f.write(f"**Figura {fig_num}.** Detalle de onda P para el "
+                        f"registro {rec}. Las líneas verticales rojas "
+                        f"marcan las anotaciones de onda P realizadas por "
+                        f"expertos. Se comparan las señales originales "
+                        f"(izquierda) con los componentes ICA (derecha) "
+                        f"en una ventana de ~3 segundos.\n\n")
+                fig_num += 1
+
         f.write("### Interpretación\n\n")
         f.write(
             "FastICA descompone las dos derivaciones ECG en dos componentes "
-            "estadísticamente independientes. Los componentes ICA presentan "
-            f"una kurtosis promedio de {avg_k_ic:.2f} (vs {avg_k_orig:.2f} "
-            "de los canales originales), lo que indica que el algoritmo "
-            "efectivamente maximiza la no-gaussianidad de cada componente, "
-            "aislando fuentes con distribuciones más impulsivas (picos QRS, "
-            "ondas P). En las figuras de comparación (fig_ica_03) se observa "
-            "que las componentes ICA redistribuyen la información de las "
-            "derivaciones: un IC tiende a capturar la actividad ventricular "
-            "dominante (complejos QRS), mientras que el otro aísla mejor "
-            "las ondas P y T de menor amplitud. Las figuras de detalle P-wave "
-            "(fig_ica_05) muestran que las anotaciones de onda P (marcadas "
-            "en rojo) coinciden con morfologías recurrentes en las "
-            "componentes, validando que ICA puede facilitar la detección "
-            "de estas ondas al separarlas de la actividad ventricular "
-            "dominante. La matriz de mezcla estimada (ica_mixing_matrix) "
-            "revela cómo cada derivación contribuye a cada componente "
-            "independiente.\n\n")
+            "estadísticamente independientes. La Tabla 1 muestra que los "
+            f"componentes ICA presentan una kurtosis promedio de "
+            f"{avg_k_ic:.2f} (vs {avg_k_orig:.2f} de los canales "
+            f"originales), lo que confirma que el algoritmo maximiza la "
+            f"no-gaussianidad de cada componente, aislando fuentes con "
+            f"distribuciones más impulsivas (picos QRS, ondas P).\n\n"
+            "En las figuras de comparación se observa que las componentes "
+            "ICA redistribuyen la información de las derivaciones: un IC "
+            "tiende a capturar la actividad ventricular dominante "
+            "(complejos QRS), mientras que el otro aísla mejor las ondas "
+            "P y T de menor amplitud. Las figuras de detalle de onda P "
+            "muestran que las anotaciones (marcadas en rojo) coinciden "
+            "con morfologías recurrentes en las componentes, validando "
+            "que ICA puede facilitar la detección de estas ondas al "
+            "separarlas de la actividad ventricular dominante.\n\n")
         f.write("### Limitaciones\n\n")
         f.write(
             "- **Solo 2 canales disponibles**: con únicamente 2 derivaciones "
@@ -485,32 +539,7 @@ def write_summary(all_ica_results: dict, kurtosis_df: pd.DataFrame,
             "- **Validación limitada**: aunque las anotaciones de onda P "
             "sirven como referencia, no se realizó una evaluación "
             "cuantitativa de la calidad de la separación (e.g., relación "
-            "señal-ruido por componente).\n\n")
-        f.write("### Figuras generadas\n\n")
-        f.write("| Figura | Descripción |\n|---|---|\n")
-        for rec in records_list:
-            f.write(
-                f"| fig_ica_01_originales_{rec} | Señales ECG originales "
-                f"(registro {rec}) |\n")
-            f.write(
-                f"| fig_ica_02_componentes_{rec} | Componentes ICA "
-                f"(registro {rec}) |\n")
-            f.write(
-                f"| fig_ica_03_comparacion_{rec} | Original vs ICA lado a "
-                f"lado |\n")
-        f.write(
-            "| fig_ica_04_kurtosis | Kurtosis comparativa: canales "
-            "originales vs ICA |\n"
-            "| fig_ica_05_pwave_* | Detalle con anotaciones P-wave "
-            "superpuestas |\n\n")
-        f.write("### Tablas generadas\n\n")
-        f.write(
-            "| Tabla | Contenido |\n"
-            "|---|---|\n"
-            "| ica_kurtosis.csv | Kurtosis de canales originales y "
-            "componentes ICA por registro |\n"
-            "| ica_mixing_matrix_*.csv | Matriz de mezcla estimada por "
-            "registro |\n")
+            "señal-ruido por componente).\n")
 
 
 # ─────────────────────────── Main ───────────────────────────────────

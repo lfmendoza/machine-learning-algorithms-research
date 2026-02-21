@@ -334,45 +334,88 @@ def write_summary(evr_df: pd.DataFrame, n_components: int,
             "- Se solicitaron {n_comp} componentes para el análisis.\n\n"
             .format(n_users=n_users, n_items=n_items, n_comp=n_components))
         f.write("### Resultados obtenidos\n\n")
-        f.write(
-            f"- **Componentes utilizados**: {n_components}\n"
-            f"- **Varianza explicada por el 1er componente**: {top1_var:.2f}%\n"
-            f"- **Varianza acumulada (primeros 5 componentes)**: "
-            f"{top5_var:.2f}%\n"
-            f"- **Varianza acumulada total ({n_components} componentes)**: "
-            f"{total_var:.2f}%\n")
+
+        # Tabla 1: Resumen numérico
         var80_str = (str(var80) if var80 is not None
-                     else f">{n_components} (no alcanzado con {n_components} "
-                          f"componentes)")
+                     else f">{n_components} (no alcanzado)")
         var90_str = (str(var90) if var90 is not None
-                     else f">{n_components} (no alcanzado con {n_components} "
-                          f"componentes)")
+                     else f">{n_components} (no alcanzado)")
+        f.write("**Tabla 1.** Resumen de la descomposición SVD sobre "
+                "MovieLens 100k.\n\n")
         f.write(
-            f"- **Componentes necesarios para 80% de varianza**: "
-            f"{var80_str}\n"
-            f"- **Componentes necesarios para 90% de varianza**: "
-            f"{var90_str}\n\n")
+            "| Métrica | Valor |\n"
+            "|---|---|\n"
+            f"| Componentes utilizados | {n_components} |\n"
+            f"| Varianza explicada (1er componente) | {top1_var:.2f}% |\n"
+            f"| Varianza acumulada (5 componentes) | {top5_var:.2f}% |\n"
+            f"| Varianza acumulada total ({n_components} comp.) | "
+            f"{total_var:.2f}% |\n"
+            f"| Componentes para 80% de varianza | {var80_str} |\n"
+            f"| Componentes para 90% de varianza | {var90_str} |\n\n")
+
+        # Figura 1: Varianza explicada
+        f.write("![Figura 1](fig_svd_01_varianza_explicada.png)\n\n")
+        f.write("**Figura 1.** Varianza explicada por cada componente SVD "
+                "(izquierda) y varianza acumulada (derecha). Las líneas "
+                "horizontales punteadas indican los umbrales del 80% y "
+                "90%.\n\n")
+
+        # Figura 2: Usuarios 2D
+        f.write("![Figura 2](fig_svd_02_usuarios_2d.png)\n\n")
+        f.write("**Figura 2.** Proyección de los 943 usuarios en las "
+                "primeras 2 componentes SVD. Cada punto representa un "
+                "usuario; la concentración central refleja patrones de "
+                "rating compartidos, mientras que los puntos periféricos "
+                "corresponden a usuarios con preferencias atípicas.\n\n")
+
+        # Figura 3: Películas 2D
+        f.write("![Figura 3](fig_svd_03_peliculas_2d.png)\n\n")
+        f.write("**Figura 3.** Proyección de las 1682 películas en las "
+                "primeras 2 componentes SVD, coloreadas por género "
+                "principal. Los agrupamientos por color confirman que los "
+                "factores latentes capturan información semántica "
+                "relacionada con los géneros cinematográficos.\n\n")
+
+        # Figura 4: Error de reconstrucción
+        f.write("![Figura 4](fig_svd_04_reconstruccion_error.png)\n\n")
+        f.write("**Figura 4.** Error relativo de reconstrucción "
+                "(||R - R_k||_F / ||R||_F) en función del número de "
+                "componentes k. El descenso rápido inicial indica que los "
+                "primeros componentes capturan la estructura más "
+                "informativa de la matriz.\n\n")
+
+        # Tabla 2: Varianza explicada (primeras filas)
+        f.write("**Tabla 2.** Varianza explicada por los primeros 10 "
+                "componentes (ver `svd_varianza_explicada.csv` para la "
+                "tabla completa).\n\n")
+        f.write("| Componente | Varianza explicada | Varianza acumulada |\n"
+                "|---|---|---|\n")
+        for _, row in evr_df.head(10).iterrows():
+            f.write(f"| {int(row['componente'])} | "
+                    f"{row['varianza_explicada']*100:.2f}% | "
+                    f"{row['varianza_acumulada']*100:.2f}% |\n")
+        f.write("\n")
+
         f.write("### Interpretación\n\n")
         f.write(
             "Los primeros componentes capturan los patrones de rating más "
             "globales (e.g., películas populares universalmente bien "
             "calificadas), mientras que los componentes posteriores capturan "
-            "preferencias más específicas de nichos o géneros. La proyección "
-            "2D de películas (fig_svd_03) muestra agrupamientos por género, "
-            "lo que confirma que SVD descubre factores latentes con "
-            "interpretación semántica. El error de reconstrucción "
-            "(fig_svd_04) decrece rápidamente con los primeros componentes, "
-            "indicando que la información esencial de la matriz se concentra "
-            "en pocas dimensiones. La tabla de top películas por componente "
-            "revela qué títulos dominan cada factor latente.\n\n"
+            "preferencias más específicas de nichos o géneros. La Figura 3 "
+            "muestra agrupamientos por género en el espacio latente, "
+            "lo que confirma que SVD descubre factores con "
+            "interpretación semántica. La Figura 4 muestra que el error de "
+            "reconstrucción decrece rápidamente con los primeros "
+            "componentes, indicando que la información esencial de la "
+            "matriz se concentra en pocas dimensiones.\n\n"
             f"La varianza acumulada con {n_components} componentes alcanza "
-            f"solo el {total_var:.2f}%, lo cual es esperado dado que la "
-            f"matriz usuario-película es altamente dispersa (densidad "
-            f"~{n_ratings / (n_users * n_items) * 100:.1f}%) y contiene "
-            f"mucha variabilidad individual. Esto implica que se necesitarían "
-            f"muchos más componentes para capturar la mayoría de la varianza, "
-            f"pero los primeros componentes ya contienen los patrones más "
-            f"informativos para recomendación.\n\n")
+            f"solo el {total_var:.2f}% (Tabla 1), lo cual es esperado dado "
+            f"que la matriz usuario-película es altamente dispersa "
+            f"(densidad ~{n_ratings / (n_users * n_items) * 100:.1f}%) y "
+            f"contiene mucha variabilidad individual. Esto implica que se "
+            f"necesitarían muchos más componentes para capturar la mayoría "
+            f"de la varianza, pero los primeros componentes ya contienen "
+            f"los patrones más informativos para recomendación.\n\n")
         f.write("### Limitaciones\n\n")
         f.write(
             "- SVD asume una relación lineal entre los factores latentes; no "
@@ -387,27 +430,7 @@ def write_summary(evr_df: pd.DataFrame, n_components: int,
             "siempre corresponden a conceptos claros como géneros.\n"
             "- Con matrices muy dispersas como esta (~6% de densidad), la "
             "varianza explicada crece lentamente con el número de "
-            "componentes.\n\n")
-        f.write("### Figuras generadas\n\n")
-        f.write(
-            "| Figura | Descripción |\n"
-            "|---|---|\n"
-            "| fig_svd_01 | Varianza explicada por componente y acumulada |\n"
-            "| fig_svd_02 | Usuarios proyectados en espacio latente 2D |\n"
-            "| fig_svd_03 | Películas proyectadas en 2D, coloreadas por "
-            "género |\n"
-            "| fig_svd_04 | Error relativo de reconstrucción vs. componentes "
-            "|\n\n")
-        f.write("### Tablas generadas\n\n")
-        f.write(
-            "| Tabla | Contenido |\n"
-            "|---|---|\n"
-            "| svd_varianza_explicada.csv | Varianza explicada y acumulada "
-            "por componente |\n"
-            "| svd_reconstruccion_error.csv | Error de reconstrucción para "
-            "distintos k |\n"
-            "| svd_top_peliculas_por_componente.csv | Top 10 películas con "
-            "mayor peso por factor latente |\n")
+            "componentes.\n")
 
 
 def main() -> None:

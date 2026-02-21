@@ -65,35 +65,33 @@ t-SNE es una técnica de reducción de dimensionalidad no lineal diseñada espec
 
 ### Resultados obtenidos
 
-- Perplexity=5: silueta=0.425, KL=1.0961, tiempo=5.3s
-- Perplexity=15: silueta=0.489, KL=1.0836, tiempo=3.9s
-- Perplexity=30: silueta=0.466, KL=0.9532, tiempo=4.0s
-- Perplexity=50: silueta=0.515, KL=0.8046, tiempo=6.5s
+**Tabla 1.** Métricas de t-SNE para cada valor de perplejidad explorado.
 
-**Mejor configuración**: perplexity=50 con silueta=0.515
+| Perplejidad | Silueta | Divergencia KL | Tiempo (s) |
+|---|---|---|---|
+| 5 | 0.425 | 1.0961 | 4.3 |
+| 15 | 0.489 | 1.0836 | 3.5 |
+| 30 | 0.466 | 0.9532 | 4.2 |
+| 50 | 0.515 | 0.8046 | 4.8 |
+
+**Mejor configuración**: perplejidad=50 con silueta=0.515
+
+![Figura 1](fig_tsne_01_perplexity_comparison.png)
+
+**Figura 1.** Proyecciones t-SNE con cuatro valores de perplejidad. Colores: rojo = maligno, azul = benigno. Perplejidades bajas producen agrupamientos más fragmentados; valores altos generan separaciones más suaves y globales.
+
+![Figura 2](fig_tsne_02_best_projection.png)
+
+**Figura 2.** Mejor proyección t-SNE (perplejidad=50, silueta=0.515). Se observa una separación clara entre tumores malignos (rojo) y benignos (azul), con mínima superposición entre clases.
 
 ### Interpretación
 
-La proyección t-SNE logra una separación visual clara entre tumores malignos y benignos. La mejor perplejidad (50) produce agrupamientos compactos y bien separados (silueta=0.515). Perplejidades bajas (5) tienden a fragmentar los agrupamientos en sub-grupos pequeños, mientras que valores altos producen proyecciones más globales pero menos definidas localmente. La divergencia KL baja (0.8046) indica que la distribución en 2D reproduce fielmente las relaciones de vecindad del espacio original. Es importante recordar que las distancias entre grupos en t-SNE no son directamente comparables; solo la cohesión interna de cada grupo es interpretable.
+La proyección t-SNE logra una separación visual clara entre tumores malignos y benignos (Figura 2). La Tabla 1 muestra que la mejor perplejidad (50) produce agrupamientos compactos y bien separados (silueta=0.515). Como se observa en la Figura 1, perplejidades bajas (5) tienden a fragmentar los agrupamientos en sub-grupos pequeños, mientras que valores altos producen proyecciones más globales pero menos definidas localmente. La divergencia KL baja (0.8046) indica que la distribución en 2D reproduce fielmente las relaciones de vecindad del espacio original. Es importante recordar que las distancias entre grupos en t-SNE no son directamente comparables; solo la cohesión interna de cada grupo es interpretable.
 
 ### Limitaciones
 
 - **No preserva distancias globales**: las distancias entre grupos separados en la proyección no son interpretables; solo la estructura intra-grupo es confiable.
-- **Sensibilidad a la perplejidad**: distintos valores de perplejidad producen visualizaciones muy diferentes, lo que puede llevar a interpretaciones erróneas si no se exploran múltiples configuraciones.
-- **No determinístico**: cada ejecución sin semilla fija puede producir proyecciones diferentes, complicando la reproducibilidad.
+- **Sensibilidad a la perplejidad**: distintos valores producen visualizaciones muy diferentes (ver Figura 1), lo que puede llevar a interpretaciones erróneas si no se exploran múltiples configuraciones.
+- **No determinístico**: cada ejecución sin semilla fija puede producir proyecciones diferentes.
 - **Escalabilidad limitada**: la complejidad O(n²) lo hace impracticable para datasets con más de ~10,000 observaciones sin técnicas de aproximación.
-- **No permite proyectar datos nuevos**: a diferencia de PCA o UMAP, no se puede aplicar la transformación aprendida a observaciones fuera del conjunto de entrenamiento.
-
-### Figuras generadas
-
-| Figura | Descripción |
-|---|---|
-| fig_tsne_01 | Comparación de 4 perplejidades (cuadrícula 2×2) |
-| fig_tsne_02 | Mejor proyección individual con leyenda |
-
-### Tablas generadas
-
-| Tabla | Contenido |
-|---|---|
-| tsne_params_silhouette.csv | Silueta, divergencia KL y tiempo por perplejidad |
-| tsne_best_coords.csv | Coordenadas 2D de la mejor proyección |
+- **No permite proyectar datos nuevos**: a diferencia de PCA o UMAP, no se puede aplicar la transformación aprendida a observaciones nuevas.

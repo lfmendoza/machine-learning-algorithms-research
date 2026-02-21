@@ -67,9 +67,45 @@ El Análisis de Componentes Independientes (ICA) es una técnica de separación 
 
 ### Resultados obtenidos
 
-**Kurtosis por registro y componente:**
+![Figura 1](fig_ica_01_originales_100.png)
 
-| Registro | Canal original | Kurtosis orig. | IC | Kurtosis IC |
+**Figura 1.** Señales ECG originales del registro 100. Cada canal (derivación) muestra una mezcla diferente de la misma actividad cardíaca. Las líneas verticales rojas indican las anotaciones de onda P.
+
+![Figura 2](fig_ica_02_componentes_100.png)
+
+**Figura 2.** Componentes independientes extraídos por FastICA del registro 100. Cada IC representa una fuente estadísticamente independiente separada de las mezclas originales.
+
+![Figura 3](fig_ica_03_comparacion_100.png)
+
+**Figura 3.** Comparación lado a lado entre señales originales (izquierda) y componentes ICA (derecha) para el registro 100.
+
+![Figura 4](fig_ica_01_originales_119.png)
+
+**Figura 4.** Señales ECG originales del registro 119. Cada canal (derivación) muestra una mezcla diferente de la misma actividad cardíaca. Las líneas verticales rojas indican las anotaciones de onda P.
+
+![Figura 5](fig_ica_02_componentes_119.png)
+
+**Figura 5.** Componentes independientes extraídos por FastICA del registro 119. Cada IC representa una fuente estadísticamente independiente separada de las mezclas originales.
+
+![Figura 6](fig_ica_03_comparacion_119.png)
+
+**Figura 6.** Comparación lado a lado entre señales originales (izquierda) y componentes ICA (derecha) para el registro 119.
+
+![Figura 7](fig_ica_01_originales_207.png)
+
+**Figura 7.** Señales ECG originales del registro 207. Cada canal (derivación) muestra una mezcla diferente de la misma actividad cardíaca. Las líneas verticales rojas indican las anotaciones de onda P.
+
+![Figura 8](fig_ica_02_componentes_207.png)
+
+**Figura 8.** Componentes independientes extraídos por FastICA del registro 207. Cada IC representa una fuente estadísticamente independiente separada de las mezclas originales.
+
+![Figura 9](fig_ica_03_comparacion_207.png)
+
+**Figura 9.** Comparación lado a lado entre señales originales (izquierda) y componentes ICA (derecha) para el registro 207.
+
+**Tabla 1.** Kurtosis (Fisher) de los canales originales y los componentes ICA por registro. Una kurtosis mayor indica distribuciones más impulsivas (mayor no-gaussianidad).
+
+| Registro | Canal original | Kurtosis orig. | Componente | Kurtosis IC |
 |---|---|---|---|---|
 | 100 | MLII | 28.51 | IC 1 | 21.27 |
 | 100 | V5 | 20.77 | IC 2 | 32.12 |
@@ -78,11 +114,25 @@ El Análisis de Componentes Independientes (ICA) es una técnica de separación 
 | 207 | MLII | 1.32 | IC 1 | 1.05 |
 | 207 | V1 | 0.91 | IC 2 | 4.46 |
 
-- **Kurtosis promedio (|valor|)**: originales=13.16, ICA=13.38
+Kurtosis promedio (|valor|): originales = 13.16, ICA = 13.38
+
+![Figura 10](fig_ica_04_kurtosis.png)
+
+**Figura 10.** Comparación de kurtosis entre canales originales e componentes ICA para cada registro. Los componentes ICA tienden a presentar mayor no-gaussianidad, confirmando la maximización de independencia estadística.
+
+![Figura 11](fig_ica_05_pwave_100.png)
+
+**Figura 11.** Detalle de onda P para el registro 100. Las líneas verticales rojas marcan las anotaciones de onda P realizadas por expertos. Se comparan las señales originales (izquierda) con los componentes ICA (derecha) en una ventana de ~3 segundos.
+
+![Figura 12](fig_ica_05_pwave_119.png)
+
+**Figura 12.** Detalle de onda P para el registro 119. Las líneas verticales rojas marcan las anotaciones de onda P realizadas por expertos. Se comparan las señales originales (izquierda) con los componentes ICA (derecha) en una ventana de ~3 segundos.
 
 ### Interpretación
 
-FastICA descompone las dos derivaciones ECG en dos componentes estadísticamente independientes. Los componentes ICA presentan una kurtosis promedio de 13.38 (vs 13.16 de los canales originales), lo que indica que el algoritmo efectivamente maximiza la no-gaussianidad de cada componente, aislando fuentes con distribuciones más impulsivas (picos QRS, ondas P). En las figuras de comparación (fig_ica_03) se observa que las componentes ICA redistribuyen la información de las derivaciones: un IC tiende a capturar la actividad ventricular dominante (complejos QRS), mientras que el otro aísla mejor las ondas P y T de menor amplitud. Las figuras de detalle P-wave (fig_ica_05) muestran que las anotaciones de onda P (marcadas en rojo) coinciden con morfologías recurrentes en las componentes, validando que ICA puede facilitar la detección de estas ondas al separarlas de la actividad ventricular dominante. La matriz de mezcla estimada (ica_mixing_matrix) revela cómo cada derivación contribuye a cada componente independiente.
+FastICA descompone las dos derivaciones ECG en dos componentes estadísticamente independientes. La Tabla 1 muestra que los componentes ICA presentan una kurtosis promedio de 13.38 (vs 13.16 de los canales originales), lo que confirma que el algoritmo maximiza la no-gaussianidad de cada componente, aislando fuentes con distribuciones más impulsivas (picos QRS, ondas P).
+
+En las figuras de comparación se observa que las componentes ICA redistribuyen la información de las derivaciones: un IC tiende a capturar la actividad ventricular dominante (complejos QRS), mientras que el otro aísla mejor las ondas P y T de menor amplitud. Las figuras de detalle de onda P muestran que las anotaciones (marcadas en rojo) coinciden con morfologías recurrentes en las componentes, validando que ICA puede facilitar la detección de estas ondas al separarlas de la actividad ventricular dominante.
 
 ### Limitaciones
 
@@ -91,26 +141,3 @@ FastICA descompone las dos derivaciones ECG en dos componentes estadísticamente
 - **Ambigüedad en orden y signo**: las componentes ICA no tienen un orden natural ni signo definido; la interpretación fisiológica requiere conocimiento del dominio.
 - **Ventana corta**: se analizaron solo 10 segundos de cada registro; una ventana más larga podría capturar mayor variabilidad en los patrones.
 - **Validación limitada**: aunque las anotaciones de onda P sirven como referencia, no se realizó una evaluación cuantitativa de la calidad de la separación (e.g., relación señal-ruido por componente).
-
-### Figuras generadas
-
-| Figura | Descripción |
-|---|---|
-| fig_ica_01_originales_100 | Señales ECG originales (registro 100) |
-| fig_ica_02_componentes_100 | Componentes ICA (registro 100) |
-| fig_ica_03_comparacion_100 | Original vs ICA lado a lado |
-| fig_ica_01_originales_119 | Señales ECG originales (registro 119) |
-| fig_ica_02_componentes_119 | Componentes ICA (registro 119) |
-| fig_ica_03_comparacion_119 | Original vs ICA lado a lado |
-| fig_ica_01_originales_207 | Señales ECG originales (registro 207) |
-| fig_ica_02_componentes_207 | Componentes ICA (registro 207) |
-| fig_ica_03_comparacion_207 | Original vs ICA lado a lado |
-| fig_ica_04_kurtosis | Kurtosis comparativa: canales originales vs ICA |
-| fig_ica_05_pwave_* | Detalle con anotaciones P-wave superpuestas |
-
-### Tablas generadas
-
-| Tabla | Contenido |
-|---|---|
-| ica_kurtosis.csv | Kurtosis de canales originales y componentes ICA por registro |
-| ica_mixing_matrix_*.csv | Matriz de mezcla estimada por registro |

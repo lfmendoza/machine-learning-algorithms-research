@@ -58,18 +58,53 @@ La Descomposición en Valores Singulares (SVD) factoriza una matriz A de dimensi
 
 ### Resultados obtenidos
 
-- **Componentes utilizados**: 50
-- **Varianza explicada por el 1er componente**: 15.39%
-- **Varianza acumulada (primeros 5 componentes)**: 28.59%
-- **Varianza acumulada total (50 componentes)**: 52.35%
-- **Componentes necesarios para 80% de varianza**: >50 (no alcanzado con 50 componentes)
-- **Componentes necesarios para 90% de varianza**: >50 (no alcanzado con 50 componentes)
+**Tabla 1.** Resumen de la descomposición SVD sobre MovieLens 100k.
+
+| Métrica | Valor |
+|---|---|
+| Componentes utilizados | 50 |
+| Varianza explicada (1er componente) | 15.39% |
+| Varianza acumulada (5 componentes) | 28.59% |
+| Varianza acumulada total (50 comp.) | 52.35% |
+| Componentes para 80% de varianza | >50 (no alcanzado) |
+| Componentes para 90% de varianza | >50 (no alcanzado) |
+
+![Figura 1](fig_svd_01_varianza_explicada.png)
+
+**Figura 1.** Varianza explicada por cada componente SVD (izquierda) y varianza acumulada (derecha). Las líneas horizontales punteadas indican los umbrales del 80% y 90%.
+
+![Figura 2](fig_svd_02_usuarios_2d.png)
+
+**Figura 2.** Proyección de los 943 usuarios en las primeras 2 componentes SVD. Cada punto representa un usuario; la concentración central refleja patrones de rating compartidos, mientras que los puntos periféricos corresponden a usuarios con preferencias atípicas.
+
+![Figura 3](fig_svd_03_peliculas_2d.png)
+
+**Figura 3.** Proyección de las 1682 películas en las primeras 2 componentes SVD, coloreadas por género principal. Los agrupamientos por color confirman que los factores latentes capturan información semántica relacionada con los géneros cinematográficos.
+
+![Figura 4](fig_svd_04_reconstruccion_error.png)
+
+**Figura 4.** Error relativo de reconstrucción (||R - R_k||_F / ||R||_F) en función del número de componentes k. El descenso rápido inicial indica que los primeros componentes capturan la estructura más informativa de la matriz.
+
+**Tabla 2.** Varianza explicada por los primeros 10 componentes (ver `svd_varianza_explicada.csv` para la tabla completa).
+
+| Componente | Varianza explicada | Varianza acumulada |
+|---|---|---|
+| 1 | 15.39% | 15.39% |
+| 2 | 4.82% | 20.21% |
+| 3 | 3.94% | 24.15% |
+| 4 | 2.22% | 26.37% |
+| 5 | 2.22% | 28.59% |
+| 6 | 1.83% | 30.42% |
+| 7 | 1.40% | 31.82% |
+| 8 | 1.32% | 33.14% |
+| 9 | 1.01% | 34.15% |
+| 10 | 0.88% | 35.04% |
 
 ### Interpretación
 
-Los primeros componentes capturan los patrones de rating más globales (e.g., películas populares universalmente bien calificadas), mientras que los componentes posteriores capturan preferencias más específicas de nichos o géneros. La proyección 2D de películas (fig_svd_03) muestra agrupamientos por género, lo que confirma que SVD descubre factores latentes con interpretación semántica. El error de reconstrucción (fig_svd_04) decrece rápidamente con los primeros componentes, indicando que la información esencial de la matriz se concentra en pocas dimensiones. La tabla de top películas por componente revela qué títulos dominan cada factor latente.
+Los primeros componentes capturan los patrones de rating más globales (e.g., películas populares universalmente bien calificadas), mientras que los componentes posteriores capturan preferencias más específicas de nichos o géneros. La Figura 3 muestra agrupamientos por género en el espacio latente, lo que confirma que SVD descubre factores con interpretación semántica. La Figura 4 muestra que el error de reconstrucción decrece rápidamente con los primeros componentes, indicando que la información esencial de la matriz se concentra en pocas dimensiones.
 
-La varianza acumulada con 50 componentes alcanza solo el 52.35%, lo cual es esperado dado que la matriz usuario-película es altamente dispersa (densidad ~6.3%) y contiene mucha variabilidad individual. Esto implica que se necesitarían muchos más componentes para capturar la mayoría de la varianza, pero los primeros componentes ya contienen los patrones más informativos para recomendación.
+La varianza acumulada con 50 componentes alcanza solo el 52.35% (Tabla 1), lo cual es esperado dado que la matriz usuario-película es altamente dispersa (densidad ~6.3%) y contiene mucha variabilidad individual. Esto implica que se necesitarían muchos más componentes para capturar la mayoría de la varianza, pero los primeros componentes ya contienen los patrones más informativos para recomendación.
 
 ### Limitaciones
 
@@ -78,20 +113,3 @@ La varianza acumulada con 50 componentes alcanza solo el 52.35%, lo cual es espe
 - No considera información temporal: las preferencias de los usuarios pueden cambiar con el tiempo.
 - La interpretación de los factores latentes es subjetiva; no siempre corresponden a conceptos claros como géneros.
 - Con matrices muy dispersas como esta (~6% de densidad), la varianza explicada crece lentamente con el número de componentes.
-
-### Figuras generadas
-
-| Figura | Descripción |
-|---|---|
-| fig_svd_01 | Varianza explicada por componente y acumulada |
-| fig_svd_02 | Usuarios proyectados en espacio latente 2D |
-| fig_svd_03 | Películas proyectadas en 2D, coloreadas por género |
-| fig_svd_04 | Error relativo de reconstrucción vs. componentes |
-
-### Tablas generadas
-
-| Tabla | Contenido |
-|---|---|
-| svd_varianza_explicada.csv | Varianza explicada y acumulada por componente |
-| svd_reconstruccion_error.csv | Error de reconstrucción para distintos k |
-| svd_top_peliculas_por_componente.csv | Top 10 películas con mayor peso por factor latente |
