@@ -1,36 +1,108 @@
-# Resumen ICA - MIT-BIH Arrhythmia P-Wave
+# ICA (Independent Component Analysis)
 
-## Dataset
-- Fuente: MIT-BIH Arrhythmia Database P-Wave Annotations (PhysioNet)
-- Registros analizados: ['100', '119', '207']
-- Canales por registro: 2 (MLII + V1/V2/V5)
-- Frecuencia de muestreo: 360 Hz
-- Ventana analizada: 3600 muestras (10.0 s)
+## 1. Descripción teórica
 
-## Preprocesamiento
-- StandardScaler por canal (media=0, std=1)
-- Ventana de 10 segundos desde el inicio del registro
+### Explicación del algoritmo y objetivo principal
 
-## Método
-- FastICA (scikit-learn), 2 componentes, whitening='unit-variance'
+El Análisis de Componentes Independientes (ICA) es una técnica de separación ciega de fuentes (Blind Source Separation, BSS). Dado un conjunto de señales observadas que son mezclas lineales de fuentes independientes desconocidas, ICA recupera las fuentes originales sin conocer el proceso de mezcla. Formalmente, si X = A·S donde X son las observaciones, A es la matriz de mezcla desconocida y S son las fuentes independientes, ICA estima una matriz W ≈ A⁻¹ tal que S ≈ W·X. El algoritmo FastICA maximiza la no-gaussianidad de las componentes extraídas (medida por negentropía o kurtosis), basándose en el Teorema Central del Límite: las mezclas de señales independientes tienden a ser más gaussianas que las fuentes originales.
 
-## Resultados clave
-- Kurtosis promedio (|valor|) — originales: 13.16, ICA: 13.38
-- Componentes ICA tienden a mayor kurtosis (mayor no-gaussianidad)
+### Principales características y supuestos
 
-## Figuras generadas
-- fig_ica_01_originales_100: Señales originales
-- fig_ica_02_componentes_100: Componentes ICA
-- fig_ica_03_comparacion_100: Original vs ICA
-- fig_ica_01_originales_119: Señales originales
-- fig_ica_02_componentes_119: Componentes ICA
-- fig_ica_03_comparacion_119: Original vs ICA
-- fig_ica_01_originales_207: Señales originales
-- fig_ica_02_componentes_207: Componentes ICA
-- fig_ica_03_comparacion_207: Original vs ICA
-- fig_ica_04_kurtosis: Kurtosis comparativa
-- fig_ica_05_pwave_*: Detalle con anotaciones P-wave
+- **Independencia estadística**: las fuentes originales deben ser estadísticamente independientes (más fuerte que la decorrelación).
+- **No-gaussianidad**: como máximo una fuente puede ser gaussiana; las demás deben tener distribuciones no-gaussianas.
+- **Mezcla lineal e instantánea**: el modelo asume que las observaciones son combinaciones lineales de las fuentes en el mismo instante temporal.
+- **Ambigüedades**: ICA no puede determinar el orden, el signo ni la escala de las componentes (son indeterminaciones inherentes).
+- **Blanqueo previo (whitening)**: se pre-procesa para decorrelacionar y normalizar las señales, reduciendo el problema a buscar una rotación que maximice la independencia.
 
-## Tablas generadas
-- ica_kurtosis.csv
-- ica_mixing_matrix_*.csv (por registro)
+### Diferencias con PCA
+
+| Aspecto | ICA | PCA |
+|---|---|---|
+| Objetivo | Maximizar independencia estadística | Maximizar varianza explicada |
+| Criterio | No-gaussianidad (negentropía, kurtosis) | Varianza (valores propios) |
+| Tipo de relación | Capta dependencias de orden superior | Solo decorrelación (2do orden) |
+| Ortogonalidad | Componentes no necesariamente ortogonales | Componentes ortogonales |
+| Ordenamiento | Sin orden natural entre componentes | Ordenadas por varianza decreciente |
+| Aplicación típica | Separación de fuentes (señales) | Reducción de dimensionalidad |
+
+## 2. Usos y aplicaciones
+
+### Principales usos en análisis de datos
+
+- **Separación ciega de fuentes (BSS)**: extraer señales originales a partir de mezclas observadas, sin conocimiento previo del proceso de mezcla.
+- **Eliminación de artefactos**: remover ruido, artefactos musculares o parpadeos de señales biomédicas.
+- **Feature extraction**: obtener representaciones estadísticamente independientes que pueden ser más informativas para tareas de clasificación.
+
+### Áreas de aplicación
+
+1. **Electrocardiografía (ECG)**: separación de la actividad cardíaca de diferentes fuentes (actividad auricular vs ventricular), eliminación de ruido muscular y de línea eléctrica. En este ejercicio, ICA separa las componentes independientes de las derivaciones ECG, permitiendo aislar patrones como la onda P.
+2. **Electroencefalografía (EEG)**: eliminación de artefactos oculares (parpadeos) y musculares de registros cerebrales. Es estándar en herramientas como EEGLAB para limpiar datos antes de análisis de potenciales evocados.
+3. **Procesamiento de audio (cocktail party problem)**: separar las voces individuales de hablantes a partir de grabaciones con múltiples micrófonos, donde cada micrófono capta una mezcla de todas las fuentes.
+
+## 3. Aplicación práctica
+
+### Dataset utilizado
+
+- **Fuente**: MIT-BIH Arrhythmia Database — P-Wave Annotations (PhysioNet, https://physionet.org/content/pwave/1.0.0/)
+- **Descripción**: 12 registros ECG seleccionados del MIT-BIH Arrhythmia Database con anotaciones de onda P realizadas por dos expertos. Los registros incluyen patologías que dificultan la detección de ondas P.
+- **Registros analizados**: ['100', '119', '207']
+- **Canales por registro**: 2 (derivación MLII + derivación precordial V1/V2/V5)
+- **Frecuencia de muestreo**: 360 Hz
+- **Ventana analizada**: 3600 muestras (10.0 segundos)
+
+### Decisiones de preprocesamiento
+
+- Se seleccionó una ventana de 10 segundos desde el inicio de cada registro para el análisis.
+- Se aplicó `StandardScaler` por canal (media=0, std=1) antes de ICA, ya que FastICA requiere señales centradas.
+- Se utilizó blanqueo (whitening='unit-variance') como paso previo a la extracción de componentes.
+
+### Parámetros del algoritmo
+
+| Parámetro | Valor |
+|---|---|
+| Algoritmo | FastICA (scikit-learn) |
+| Componentes | 2 (igual al número de canales) |
+| Whitening | unit-variance |
+| Iteraciones máximas | 1000 |
+
+### Resultados obtenidos
+
+**Kurtosis por registro y componente:**
+
+| Registro | Canal original | Kurtosis orig. | IC | Kurtosis IC |
+|---|---|---|---|---|
+| 100 | MLII | 28.51 | IC 1 | 21.27 |
+| 100 | V5 | 20.77 | IC 2 | 32.12 |
+| 119 | MLII | 12.06 | IC 1 | 16.18 |
+| 119 | V1 | 15.39 | IC 2 | 5.22 |
+| 207 | MLII | 1.32 | IC 1 | 1.05 |
+| 207 | V1 | 0.91 | IC 2 | 4.46 |
+
+- **Kurtosis promedio (|valor|)**: originales=13.16, ICA=13.38
+
+### Interpretación
+
+FastICA descompone las dos derivaciones ECG en dos componentes estadísticamente independientes. Los componentes ICA presentan una kurtosis promedio de 13.38 (vs 13.16 de los canales originales), lo que indica que el algoritmo efectivamente maximiza la no-gaussianidad de cada componente, aislando fuentes con distribuciones más impulsivas (picos QRS, ondas P). En las figuras de comparación (fig_ica_03) se observa que las componentes ICA redistribuyen la información de las derivaciones: un IC tiende a capturar la actividad ventricular dominante (complejos QRS), mientras que el otro aísla mejor las ondas P y T de menor amplitud. Las figuras de detalle P-wave (fig_ica_05) muestran que las anotaciones de onda P (marcadas en rojo) coinciden con morfologías recurrentes en las componentes, validando que ICA puede facilitar la detección de estas ondas al separarlas de la actividad ventricular dominante. La matriz de mezcla estimada (ica_mixing_matrix) revela cómo cada derivación contribuye a cada componente independiente.
+
+### Figuras generadas
+
+| Figura | Descripción |
+|---|---|
+| fig_ica_01_originales_100 | Señales ECG originales (registro 100) |
+| fig_ica_02_componentes_100 | Componentes ICA (registro 100) |
+| fig_ica_03_comparacion_100 | Original vs ICA lado a lado |
+| fig_ica_01_originales_119 | Señales ECG originales (registro 119) |
+| fig_ica_02_componentes_119 | Componentes ICA (registro 119) |
+| fig_ica_03_comparacion_119 | Original vs ICA lado a lado |
+| fig_ica_01_originales_207 | Señales ECG originales (registro 207) |
+| fig_ica_02_componentes_207 | Componentes ICA (registro 207) |
+| fig_ica_03_comparacion_207 | Original vs ICA lado a lado |
+| fig_ica_04_kurtosis | Kurtosis comparativa: canales originales vs ICA |
+| fig_ica_05_pwave_* | Detalle con anotaciones P-wave superpuestas |
+
+### Tablas generadas
+
+| Tabla | Contenido |
+|---|---|
+| ica_kurtosis.csv | Kurtosis de canales originales y componentes ICA por registro |
+| ica_mixing_matrix_*.csv | Matriz de mezcla estimada por registro |

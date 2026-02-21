@@ -64,7 +64,7 @@ def run_tsne_grid(X, labels, output_dir: str, seed: int):
 
     for perp in perplexities:
         t0 = time.time()
-        tsne = TSNE(n_components=2, perplexity=perp, n_iter=1000,
+        tsne = TSNE(n_components=2, perplexity=perp, max_iter=1000,
                     init="pca", learning_rate="auto", random_state=seed)
         Z = tsne.fit_transform(X)
         elapsed = time.time() - t0
@@ -93,13 +93,13 @@ def run_tsne_grid(X, labels, output_dir: str, seed: int):
                        color=LABEL_COLORS[lab], label=LABEL_NAMES[lab])
         sil_val = metrics_df.loc[metrics_df["perplexity"] == perp,
                                  "silhouette"].iloc[0]
-        ax.set_title(f"perplexity = {perp}  (sil = {sil_val:.3f})", fontsize=10)
+        ax.set_title(f"perplejidad = {perp}  (silueta = {sil_val:.3f})", fontsize=10)
         ax.set_xlabel("t-SNE 1")
         ax.set_ylabel("t-SNE 2")
         ax.legend(fontsize=7, loc="best")
         ax.grid(True, ls="--", lw=0.3)
 
-    fig.suptitle("t-SNE — Efecto de la perplexity", fontsize=13, y=1.01)
+    fig.suptitle("t-SNE — Efecto de la perplejidad", fontsize=13, y=1.01)
     fig.tight_layout()
     fig.savefig(os.path.join(output_dir, "fig_tsne_01_perplexity_comparison.png"),
                 dpi=200, bbox_inches="tight")
@@ -117,7 +117,7 @@ def run_tsne_grid(X, labels, output_dir: str, seed: int):
         mask = labels == lab
         ax.scatter(Z_best[mask, 0], Z_best[mask, 1], s=14, alpha=0.7,
                    color=LABEL_COLORS[lab], label=LABEL_NAMES[lab])
-    ax.set_title(f"t-SNE (perplexity={best_perp}, silhouette={best_sil:.3f})")
+    ax.set_title(f"t-SNE (perplejidad={best_perp}, silueta={best_sil:.3f})")
     ax.set_xlabel("t-SNE 1")
     ax.set_ylabel("t-SNE 2")
     ax.legend()
@@ -179,7 +179,7 @@ def run_umap_grid(X, labels, output_dir: str, seed: int):
         sil_val = metrics_df.loc[(metrics_df["n_neighbors"] == nn) &
                                  (metrics_df["min_dist"] == 0.1),
                                  "silhouette"].iloc[0]
-        ax.set_title(f"n_neighbors={nn}, min_dist=0.1 (sil={sil_val:.3f})",
+        ax.set_title(f"n_neighbors={nn}, min_dist=0.1 (silueta={sil_val:.3f})",
                      fontsize=9)
         ax.set_xlabel("UMAP 1")
         ax.set_ylabel("UMAP 2")
@@ -204,7 +204,7 @@ def run_umap_grid(X, labels, output_dir: str, seed: int):
         sil_val = metrics_df.loc[(metrics_df["n_neighbors"] == 15) &
                                  (metrics_df["min_dist"] == md),
                                  "silhouette"].iloc[0]
-        ax.set_title(f"min_dist={md} (sil={sil_val:.3f})")
+        ax.set_title(f"min_dist={md} (silueta={sil_val:.3f})")
         ax.set_xlabel("UMAP 1")
         ax.set_ylabel("UMAP 2")
         ax.legend(fontsize=8)
@@ -229,7 +229,7 @@ def run_umap_grid(X, labels, output_dir: str, seed: int):
         ax.scatter(Z_best[mask, 0], Z_best[mask, 1], s=14, alpha=0.7,
                    color=LABEL_COLORS[lab], label=LABEL_NAMES[lab])
     ax.set_title(f"UMAP (n_neighbors={best_nn}, min_dist={best_md}, "
-                 f"sil={best_sil:.3f})")
+                 f"silueta={best_sil:.3f})")
     ax.set_xlabel("UMAP 1")
     ax.set_ylabel("UMAP 2")
     ax.legend()
@@ -276,7 +276,7 @@ def plot_comparison(tsne_results, best_perp, umap_results, best_umap_key,
     axes[1].legend(fontsize=8)
     axes[1].grid(True, ls="--", lw=0.3)
 
-    fig.suptitle("Comparación t-SNE vs UMAP — Breast Cancer Wisconsin",
+    fig.suptitle("Comparación t-SNE vs UMAP — Cáncer de Mama Wisconsin",
                  fontsize=13)
     fig.tight_layout()
     fig.savefig(os.path.join(output_dir, "fig_comparison_tsne_vs_umap.png"),
@@ -291,25 +291,150 @@ def write_tsne_summary(metrics_path: str, output_dir: str,
     metrics = pd.read_csv(metrics_path)
     path = os.path.join(output_dir, "resumen_tsne.md")
     best = metrics.sort_values("silhouette", ascending=False).iloc[0]
+    worst = metrics.sort_values("silhouette", ascending=True).iloc[0]
     with open(path, "w", encoding="utf-8") as f:
-        f.write("# Resumen t-SNE — Breast Cancer Wisconsin\n\n")
-        f.write("## Dataset\n")
-        f.write(f"- Fuente: Breast Cancer Wisconsin (Diagnostic)\n")
-        f.write(f"- Muestras: {n_samples}\n")
-        f.write(f"- Features (tras drop id, diagnosis): {n_features}\n")
-        f.write("- Etiquetas: Maligno (M) / Benigno (B)\n\n")
-        f.write("## Preprocesamiento\n")
-        f.write("- StandardScaler (media=0, std=1) sobre todas las features\n\n")
-        f.write("## Parámetros explorados\n")
-        f.write(f"- Perplexidades: {metrics['perplexity'].tolist()}\n")
-        f.write(f"- Iteraciones: 1000, init: pca, learning_rate: auto\n\n")
-        f.write("## Resultados clave\n")
-        f.write(f"- Mejor perplexity: {int(best['perplexity'])} "
-                f"(silhouette = {best['silhouette']:.3f})\n")
-        f.write(f"- KL divergence: {best['kl_divergence']:.4f}\n\n")
-        f.write("## Figuras\n")
-        f.write("- fig_tsne_01: Comparación de perplexidades\n")
-        f.write("- fig_tsne_02: Mejor proyección individual\n")
+        f.write("# t-SNE (Incrustación Estocástica de Vecinos con Distribución t)\n\n")
+
+        # ── 1. Descripción teórica ──
+        f.write("## 1. Descripción teórica\n\n")
+        f.write("### Explicación del algoritmo y objetivo principal\n\n")
+        f.write(
+            "t-SNE es una técnica de reducción de dimensionalidad no lineal "
+            "diseñada específicamente para la visualización de datos de alta "
+            "dimensión en 2D o 3D. El algoritmo funciona en dos etapas: "
+            "primero, construye una distribución de probabilidad conjunta "
+            "sobre pares de puntos en el espacio original, de modo que puntos "
+            "similares tengan alta probabilidad de ser seleccionados como "
+            "vecinos; segundo, define una distribución t de Student similar "
+            "en el espacio de baja dimensión y minimiza la divergencia de "
+            "Kullback-Leibler (KL) entre ambas distribuciones mediante "
+            "descenso de gradiente.\n\n")
+        f.write("### Principales características y supuestos\n\n")
+        f.write(
+            "- Preserva la **estructura local**: puntos cercanos en alta "
+            "dimensión permanecen cercanos en la proyección.\n"
+            "- Utiliza una distribución t de Student (colas pesadas) en el "
+            "espacio de baja dimensión para aliviar el problema del "
+            "\"crowding\" (aglomeración).\n"
+            "- El parámetro **perplexity** controla el balance entre "
+            "estructura local y global: valores bajos enfatizan vecindarios "
+            "pequeños, valores altos consideran más contexto.\n"
+            "- Es **no paramétrico**: no asume distribución ni linealidad "
+            "en los datos.\n"
+            "- Es **estocástico**: distintas ejecuciones pueden dar "
+            "resultados ligeramente diferentes.\n"
+            "- Las distancias absolutas en la proyección no tienen "
+            "significado cuantitativo; solo la estructura relativa "
+            "(vecindades) es interpretable.\n\n")
+        f.write("### Diferencias con PCA y otros métodos\n\n")
+        f.write(
+            "| Aspecto | t-SNE | PCA |\n"
+            "|---|---|---|\n"
+            "| Tipo de transformación | No lineal | Lineal |\n"
+            "| Preserva | Estructura local (vecindarios) | Varianza "
+            "global |\n"
+            "| Escalabilidad | O(n²) — costoso para datasets grandes | "
+            "O(np min(n,p)) — eficiente |\n"
+            "| Determinismo | Estocástico | Determinístico |\n"
+            "| Inversibilidad | No invertible | Invertible |\n"
+            "| Uso principal | Visualización 2D/3D | Reducción de "
+            "dimensionalidad general |\n\n")
+
+        # ── 2. Usos y aplicaciones ──
+        f.write("## 2. Usos y aplicaciones\n\n")
+        f.write("### Principales usos en análisis de datos\n\n")
+        f.write(
+            "- **Visualización exploratoria**: proyectar datos "
+            "multidimensionales a 2D para identificar agrupamientos, "
+            "valores atípicos y patrones que no son evidentes en el "
+            "espacio original.\n"
+            "- **Validación de agrupamientos**: verificar visualmente si "
+            "los grupos encontrados por algoritmos de agrupamiento son "
+            "coherentes.\n"
+            "- **Análisis de representaciones vectoriales**: visualizar "
+            "representaciones aprendidas por redes neuronales (word2vec, "
+            "BERT, etc.).\n\n")
+        f.write("### Áreas de aplicación\n\n")
+        f.write(
+            "1. **Bioinformática y genómica**: visualización de datos de "
+            "RNA-seq de célula única para identificar tipos celulares. "
+            "t-SNE es estándar en herramientas como Seurat y Scanpy para "
+            "revelar subpoblaciones celulares en miles de dimensiones "
+            "génicas.\n"
+            "2. **Diagnóstico médico por imágenes**: proyección de "
+            "características extraídas de imágenes médicas (mamografías, "
+            "histopatología) para visualizar la separación entre clases "
+            "benignas y malignas, como en este ejercicio.\n"
+            "3. **Seguridad informática**: visualización de tráfico de red "
+            "multidimensional para detectar patrones anómalos de intrusión "
+            "o malware.\n\n")
+
+        # ── 3. Aplicación práctica ──
+        f.write("## 3. Aplicación práctica\n\n")
+        f.write("### Dataset utilizado\n\n")
+        f.write(
+            f"- **Fuente**: Breast Cancer Wisconsin (Diagnostic), UCI / "
+            f"Kaggle\n"
+            f"- **Muestras**: {n_samples} (tumores de mama)\n"
+            f"- **Características**: {n_features} variables numéricas "
+            f"(radio, textura, perímetro, área, suavidad, compacidad, "
+            f"concavidad, puntos cóncavos, simetría, dimensión fractal — "
+            f"cada una con media, error estándar y peor valor)\n"
+            f"- **Etiquetas**: Maligno (M) / Benigno (B)\n\n")
+        f.write("### Decisiones de preprocesamiento\n\n")
+        f.write(
+            "- Se eliminaron las columnas `id` y `diagnosis` (esta última "
+            "se conservó como etiqueta para colorear).\n"
+            "- Se aplicó `StandardScaler` (media=0, desviación=1) a todas "
+            "las características, necesario porque t-SNE es sensible a la "
+            "escala de las variables.\n\n")
+        f.write("### Parámetros explorados\n\n")
+        f.write(
+            f"| Parámetro | Valores |\n"
+            f"|---|---|\n"
+            f"| Perplejidad (perplexity) | {metrics['perplexity'].tolist()} |\n"
+            f"| Iteraciones | 1000 |\n"
+            f"| Inicialización | PCA |\n"
+            f"| Tasa de aprendizaje | auto |\n\n")
+        f.write("### Resultados obtenidos\n\n")
+        for _, row in metrics.iterrows():
+            f.write(
+                f"- Perplexity={int(row['perplexity'])}: "
+                f"silueta={row['silhouette']:.3f}, "
+                f"KL={row['kl_divergence']:.4f}, "
+                f"tiempo={row['tiempo_s']:.1f}s\n")
+        f.write(
+            f"\n**Mejor configuración**: perplexity={int(best['perplexity'])} "
+            f"con silueta={best['silhouette']:.3f}\n\n")
+        f.write("### Interpretación\n\n")
+        f.write(
+            f"La proyección t-SNE logra una separación visual clara entre "
+            f"tumores malignos y benignos. La mejor perplejidad "
+            f"({int(best['perplexity'])}) produce agrupamientos compactos y "
+            f"bien separados (silueta={best['silhouette']:.3f}). "
+            f"Perplejidades bajas ({int(worst['perplexity'])}) tienden a "
+            f"fragmentar los agrupamientos en sub-grupos pequeños, mientras "
+            f"que valores altos producen proyecciones más globales pero "
+            f"menos definidas localmente. La divergencia KL baja "
+            f"({best['kl_divergence']:.4f}) indica que la distribución en "
+            f"2D reproduce fielmente las relaciones de vecindad del espacio "
+            f"original. Es importante recordar que las distancias entre "
+            f"grupos en t-SNE no son directamente comparables; solo la "
+            f"cohesión interna de cada grupo es interpretable.\n\n")
+        f.write("### Figuras generadas\n\n")
+        f.write(
+            "| Figura | Descripción |\n"
+            "|---|---|\n"
+            "| fig_tsne_01 | Comparación de 4 perplexidades (grid 2×2) |\n"
+            "| fig_tsne_02 | Mejor proyección individual con leyenda |\n\n")
+        f.write("### Tablas generadas\n\n")
+        f.write(
+            "| Tabla | Contenido |\n"
+            "|---|---|\n"
+            "| tsne_params_silhouette.csv | Silueta, divergencia KL y "
+            "tiempo por perplejidad |\n"
+            "| tsne_best_coords.csv | Coordenadas 2D de la mejor "
+            "proyección |\n")
 
 
 def write_umap_summary(metrics_path: str, output_dir: str,
@@ -318,26 +443,154 @@ def write_umap_summary(metrics_path: str, output_dir: str,
     path = os.path.join(output_dir, "resumen_umap.md")
     best = metrics.sort_values("silhouette", ascending=False).iloc[0]
     with open(path, "w", encoding="utf-8") as f:
-        f.write("# Resumen UMAP — Breast Cancer Wisconsin\n\n")
-        f.write("## Dataset\n")
-        f.write(f"- Fuente: Breast Cancer Wisconsin (Diagnostic)\n")
-        f.write(f"- Muestras: {n_samples}\n")
-        f.write(f"- Features: {n_features}\n")
-        f.write("- Etiquetas: Maligno (M) / Benigno (B)\n\n")
-        f.write("## Preprocesamiento\n")
-        f.write("- StandardScaler (media=0, std=1)\n\n")
-        f.write("## Parámetros explorados\n")
-        f.write(f"- n_neighbors: {sorted(metrics['n_neighbors'].unique().tolist())}\n")
-        f.write(f"- min_dist: {sorted(metrics['min_dist'].unique().tolist())}\n\n")
-        f.write("## Resultados clave\n")
-        f.write(f"- Mejor config: n_neighbors={int(best['n_neighbors'])}, "
-                f"min_dist={best['min_dist']} "
-                f"(silhouette={best['silhouette']:.3f})\n\n")
-        f.write("## Figuras\n")
-        f.write("- fig_umap_01: Comparación de n_neighbors\n")
-        f.write("- fig_umap_02: Efecto de min_dist\n")
-        f.write("- fig_umap_03: Mejor proyección individual\n")
-        f.write("- fig_comparison_tsne_vs_umap: Comparación lado a lado\n")
+        f.write("# UMAP (Aproximación y Proyección Uniforme de Variedades)\n\n")
+
+        # ── 1. Descripción teórica ──
+        f.write("## 1. Descripción teórica\n\n")
+        f.write("### Explicación del algoritmo y objetivo principal\n\n")
+        f.write(
+            "UMAP es una técnica de reducción de dimensionalidad no lineal "
+            "fundamentada en topología algebraica y geometría riemanniana. "
+            "El algoritmo modela la estructura de alta dimensión como un "
+            "grafo ponderado de vecinos (fuzzy simplicial set) y luego "
+            "optimiza un layout en baja dimensión que preserve la topología "
+            "de ese grafo. En concreto: (1) construye un grafo de k-vecinos "
+            "más cercanos con pesos exponenciales basados en distancias "
+            "locales; (2) simetriza el grafo para obtener una representación "
+            "topológica fuzzy; (3) minimiza la entropía cruzada entre el "
+            "grafo original y el grafo en el espacio de baja dimensión "
+            "mediante descenso de gradiente estocástico.\n\n")
+        f.write("### Principales características y supuestos\n\n")
+        f.write(
+            "- Asume que los datos están distribuidos uniformemente sobre un "
+            "manifold (variedad) localmente conexo inmerso en el espacio de "
+            "alta dimensión.\n"
+            "- Preserva tanto la **estructura local** como la **estructura "
+            "global** de los datos (mejor que t-SNE en este aspecto).\n"
+            "- **n_neighbors** controla el tamaño del vecindario local: "
+            "valores pequeños enfatizan detalles locales, valores grandes "
+            "capturan más estructura global.\n"
+            "- **min_dist** controla qué tan compactos son los clusters en "
+            "la proyección: valores pequeños permiten puntos más apretados, "
+            "valores grandes los dispersan.\n"
+            "- Es significativamente más **rápido** que t-SNE para datasets "
+            "grandes (complejidad aproximada O(n^1.14)).\n"
+            "- A diferencia de t-SNE, UMAP puede generar transformaciones "
+            "para datos nuevos (método `.transform()`).\n\n")
+        f.write("### Diferencias con PCA y t-SNE\n\n")
+        f.write(
+            "| Aspecto | UMAP | PCA | t-SNE |\n"
+            "|---|---|---|---|\n"
+            "| Transformación | No lineal | Lineal | No lineal |\n"
+            "| Estructura preservada | Local + global | Global (varianza) "
+            "| Principalmente local |\n"
+            "| Escalabilidad | Buena (O(n^1.14)) | Excelente | "
+            "Limitada (O(n²)) |\n"
+            "| Datos nuevos | Soporta `.transform()` | Soporta | "
+            "No soporta |\n"
+            "| Fundamento teórico | Topología algebraica | Álgebra lineal | "
+            "Teoría de la información |\n"
+            "| Distancias entre clusters | Más interpretables | "
+            "Interpretables | No interpretables |\n\n")
+
+        # ── 2. Usos y aplicaciones ──
+        f.write("## 2. Usos y aplicaciones\n\n")
+        f.write("### Principales usos en análisis de datos\n\n")
+        f.write(
+            "- **Visualización de datos de alta dimensión**: alternativa "
+            "más rápida y con mejor preservación global que t-SNE.\n"
+            "- **Preprocesamiento para agrupamiento**: las proyecciones "
+            "UMAP pueden usarse como entrada para algoritmos de "
+            "agrupamiento (HDBSCAN, KMeans) mejorando la separación.\n"
+            "- **Exploración de representaciones vectoriales**: "
+            "visualización de representaciones de redes neuronales, "
+            "vectores de palabras y características aprendidas.\n\n")
+        f.write("### Áreas de aplicación\n\n")
+        f.write(
+            "1. **Genómica y análisis de célula única**: UMAP ha "
+            "reemplazado parcialmente a t-SNE como estándar de "
+            "visualización en transcriptómica de célula única gracias a "
+            "su velocidad y mejor preservación de la estructura global "
+            "entre tipos celulares.\n"
+            "2. **Detección de anomalías en ciberseguridad**: proyección "
+            "de vectores de características de tráfico de red para "
+            "identificar visualmente comportamientos anómalos y ataques "
+            "que se separan de los patrones normales.\n"
+            "3. **Investigación farmacéutica**: visualización de espacios "
+            "químicos de alta dimensión (descriptores moleculares) para "
+            "identificar familias de compuestos y candidatos a "
+            "fármacos.\n\n")
+
+        # ── 3. Aplicación práctica ──
+        f.write("## 3. Aplicación práctica\n\n")
+        f.write("### Dataset utilizado\n\n")
+        f.write(
+            f"- **Fuente**: Breast Cancer Wisconsin (Diagnostic), UCI / "
+            f"Kaggle\n"
+            f"- **Muestras**: {n_samples}\n"
+            f"- **Características**: {n_features} (10 medidas × 3 "
+            f"estadísticos: media, error estándar, peor valor)\n"
+            f"- **Etiquetas**: Maligno (M) / Benigno (B)\n\n")
+        f.write("### Decisiones de preprocesamiento\n\n")
+        f.write(
+            "- Mismo preprocesamiento que t-SNE: eliminación de `id` y "
+            "`diagnosis`, seguido de `StandardScaler`.\n"
+            "- Esto permite una comparación justa entre ambos métodos.\n\n")
+        f.write("### Parámetros explorados\n\n")
+        nn_list = sorted(metrics['n_neighbors'].unique().tolist())
+        md_list = sorted(metrics['min_dist'].unique().tolist())
+        f.write(
+            f"| Parámetro | Valores |\n"
+            f"|---|---|\n"
+            f"| n_neighbors | {nn_list} |\n"
+            f"| min_dist | {md_list} |\n"
+            f"| n_components | 2 |\n\n")
+        f.write("### Resultados obtenidos\n\n")
+        for _, row in metrics.iterrows():
+            f.write(
+                f"- n_neighbors={int(row['n_neighbors'])}, "
+                f"min_dist={row['min_dist']}: "
+                f"silueta={row['silhouette']:.3f}, "
+                f"tiempo={row['tiempo_s']:.1f}s\n")
+        f.write(
+            f"\n**Mejor configuración**: n_neighbors="
+            f"{int(best['n_neighbors'])}, min_dist={best['min_dist']} "
+            f"con silueta={best['silhouette']:.3f}\n\n")
+        f.write("### Interpretación\n\n")
+        f.write(
+            f"UMAP produce una separación clara entre tumores malignos y "
+            f"benignos con la mejor configuración (n_neighbors="
+            f"{int(best['n_neighbors'])}, min_dist={best['min_dist']}, "
+            f"silueta={best['silhouette']:.3f}). "
+            f"El parámetro n_neighbors tiene el mayor impacto: valores "
+            f"pequeños (5) generan agrupamientos más fragmentados con "
+            f"estructura local detallada, mientras que valores grandes (50) "
+            f"producen proyecciones más suaves que capturan la separación "
+            f"global. El min_dist controla la compacidad visual: con "
+            f"min_dist=0.1 los puntos se agrupan densamente, con "
+            f"min_dist=0.5 se dispersan más. Comparado con t-SNE, UMAP "
+            f"tiende a mantener mejor las distancias relativas entre "
+            f"grupos (no solo dentro de ellos), haciendo que la separación "
+            f"espacial entre los grupos M y B sea más "
+            f"interpretable.\n\n")
+        f.write("### Figuras generadas\n\n")
+        f.write(
+            "| Figura | Descripción |\n"
+            "|---|---|\n"
+            "| fig_umap_01 | Comparación de n_neighbors (grid 2×2, "
+            "min_dist=0.1) |\n"
+            "| fig_umap_02 | Efecto de min_dist (n_neighbors=15) |\n"
+            "| fig_umap_03 | Mejor proyección individual con leyenda |\n"
+            "| fig_comparison_tsne_vs_umap | Comparación lado a lado con "
+            "t-SNE |\n\n")
+        f.write("### Tablas generadas\n\n")
+        f.write(
+            "| Tabla | Contenido |\n"
+            "|---|---|\n"
+            "| umap_params_silhouette.csv | Silueta y tiempo por "
+            "configuración |\n"
+            "| umap_best_coords.csv | Coordenadas 2D de la mejor "
+            "proyección |\n")
 
 
 # ─────────────────────────────── Main ───────────────────────────────

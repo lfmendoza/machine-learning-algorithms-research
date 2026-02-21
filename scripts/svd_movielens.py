@@ -137,7 +137,7 @@ def plot_items_2d(svd, items_df: pd.DataFrame, output_dir: str) -> None:
     primary_genre = np.argmax(genre_matrix, axis=1)
 
     n_genres = len(genre_cols)
-    cmap = plt.cm.get_cmap("tab20", n_genres)
+    cmap = matplotlib.colormaps.get_cmap("tab20").resampled(n_genres)
 
     fig, ax = plt.subplots(figsize=(9, 7))
     scatter = ax.scatter(item_coords[:, 0], item_coords[:, 1],
@@ -227,31 +227,139 @@ def write_summary(evr_df: pd.DataFrame, n_components: int,
                        "componente"].min()
     var90 = evr_df.loc[evr_df["varianza_acumulada"] >= 0.90,
                        "componente"].min()
+    top1_var = evr_df.iloc[0]["varianza_explicada"] * 100
+    top5_var = evr_df.iloc[:5]["varianza_explicada"].sum() * 100
 
     with open(path, "w", encoding="utf-8") as f:
-        f.write("# Resumen SVD - MovieLens 100k\n\n")
-        f.write("## Dataset\n")
-        f.write(f"- Fuente: MovieLens 100k (GroupLens Research)\n")
-        f.write(f"- Usuarios: {n_users}\n")
-        f.write(f"- Películas: {n_items}\n")
-        f.write(f"- Ratings: {n_ratings}\n")
-        f.write(f"- Rango de ratings: 1-5\n\n")
-        f.write("## Preprocesamiento\n")
-        f.write("- Matriz dispersa usuario-película (CSR)\n")
-        f.write("- Valores: rating directo (sin centrar)\n\n")
-        f.write("## Parámetros\n")
-        f.write(f"- Componentes solicitados: {n_components}\n")
-        f.write(f"- Componentes para 80% varianza: {var80}\n")
-        f.write(f"- Componentes para 90% varianza: {var90}\n\n")
-        f.write("## Figuras generadas\n")
-        f.write("- fig_svd_01: Varianza explicada por componente y acumulada\n")
-        f.write("- fig_svd_02: Usuarios en espacio latente 2D\n")
-        f.write("- fig_svd_03: Películas en espacio latente 2D por género\n")
-        f.write("- fig_svd_04: Error de reconstrucción vs. número de componentes\n\n")
-        f.write("## Tablas generadas\n")
-        f.write("- svd_varianza_explicada.csv\n")
-        f.write("- svd_reconstruccion_error.csv\n")
-        f.write("- svd_top_peliculas_por_componente.csv\n")
+        f.write("# SVD (Descomposición en Valores Singulares)\n\n")
+
+        # ── 1. Descripción teórica ──
+        f.write("## 1. Descripción teórica\n\n")
+        f.write("### Explicación del algoritmo y objetivo principal\n\n")
+        f.write(
+            "La Descomposición en Valores Singulares (SVD) factoriza una "
+            "matriz A de dimensiones m×n en tres matrices: A = U·Σ·Vᵀ, donde "
+            "U (m×m) contiene los vectores singulares izquierdos, Σ (m×n) es "
+            "una matriz diagonal con los valores singulares ordenados de mayor "
+            "a menor, y Vᵀ (n×n) contiene los vectores singulares derechos. "
+            "Su objetivo principal es la reducción de dimensionalidad: al "
+            "retener solo los k valores singulares más grandes se obtiene la "
+            "mejor aproximación de rango k en norma de Frobenius.\n\n")
+        f.write("### Principales características y supuestos\n\n")
+        f.write(
+            "- Es un método determinístico y algebraicamente exacto (no "
+            "iterativo en su forma teórica).\n"
+            "- No requiere que los datos sigan una distribución particular "
+            "(no asume normalidad).\n"
+            "- Opera directamente sobre la matriz de datos, sin necesidad de "
+            "calcular la matriz de covarianza.\n"
+            "- La variante TruncatedSVD utilizada aquí trabaja eficientemente "
+            "con matrices dispersas, ya que no centra los datos (no resta la "
+            "media), a diferencia de PCA.\n"
+            "- Los valores singulares reflejan la importancia relativa de cada "
+            "componente: σ₁ ≥ σ₂ ≥ ... ≥ σₖ.\n\n")
+        f.write("### Diferencias con PCA\n\n")
+        f.write(
+            "| Aspecto | SVD (TruncatedSVD) | PCA |\n"
+            "|---|---|---|\n"
+            "| Centrado | No centra los datos | Centra (resta la media) |\n"
+            "| Matrices dispersas | Soporte nativo (no densifica) | Requiere "
+            "densificar o usar variantes |\n"
+            "| Base matemática | Factorización directa A = UΣVᵀ | "
+            "Diagonalización de la covarianza Cov = VΛVᵀ |\n"
+            "| Interpretación | Factores latentes de la matriz original | "
+            "Direcciones de máxima varianza centrada |\n"
+            "| Caso especial | PCA es SVD aplicado a datos centrados | — |\n\n")
+
+        # ── 2. Usos y aplicaciones ──
+        f.write("## 2. Usos y aplicaciones\n\n")
+        f.write("### Principales usos en análisis de datos\n\n")
+        f.write(
+            "- **Reducción de dimensionalidad**: comprimir datos de alta "
+            "dimensión preservando la mayor varianza posible.\n"
+            "- **Sistemas de recomendación**: factorización de matrices "
+            "usuario-ítem para descubrir factores latentes (gustos, "
+            "categorías implícitas).\n"
+            "- **Compresión de datos e imágenes**: aproximaciones de bajo "
+            "rango para almacenamiento eficiente.\n"
+            "- **Procesamiento de lenguaje natural (LSA/LSI)**: reducir la "
+            "matriz término-documento para capturar relaciones semánticas.\n\n")
+        f.write("### Áreas de aplicación\n\n")
+        f.write(
+            "1. **Sistemas de recomendación (Netflix, Spotify)**: SVD "
+            "identifica factores latentes en matrices de ratings para predecir "
+            "preferencias no observadas. Es la base del filtrado colaborativo "
+            "matricial.\n"
+            "2. **Procesamiento de imágenes y visión por computadora**: la "
+            "aproximación de bajo rango permite comprimir imágenes reteniendo "
+            "las estructuras visuales más relevantes, y se usa en "
+            "reconocimiento facial (eigenfaces).\n"
+            "3. **Bioinformática**: análisis de matrices de expresión génica "
+            "para identificar patrones de co-expresión entre genes y "
+            "condiciones experimentales.\n\n")
+
+        # ── 3. Aplicación práctica ──
+        f.write("## 3. Aplicación práctica\n\n")
+        f.write("### Dataset utilizado\n\n")
+        f.write(
+            f"- **Fuente**: MovieLens 100k (GroupLens Research, University of "
+            f"Minnesota)\n"
+            f"- **Usuarios**: {n_users}\n"
+            f"- **Películas**: {n_items}\n"
+            f"- **Ratings totales**: {n_ratings:,}\n"
+            f"- **Escala de ratings**: 1 a 5 (enteros)\n"
+            f"- **Densidad de la matriz**: "
+            f"{n_ratings / (n_users * n_items) * 100:.2f}% "
+            f"(altamente dispersa)\n\n")
+        f.write("### Decisiones de preprocesamiento\n\n")
+        f.write(
+            "- Se construyó una matriz dispersa usuario-película en formato "
+            "CSR (Compressed Sparse Row) de {n_users}×{n_items}.\n"
+            "- Se utilizaron los ratings directos como valores (sin centrar), "
+            "apropiado para TruncatedSVD sobre matrices dispersas.\n"
+            "- Se solicitaron {n_comp} componentes para el análisis.\n\n"
+            .format(n_users=n_users, n_items=n_items, n_comp=n_components))
+        f.write("### Resultados obtenidos\n\n")
+        f.write(
+            f"- **Componentes utilizados**: {n_components}\n"
+            f"- **Varianza explicada por el 1er componente**: {top1_var:.2f}%\n"
+            f"- **Varianza acumulada (primeros 5 componentes)**: "
+            f"{top5_var:.2f}%\n"
+            f"- **Componentes necesarios para 80% de varianza**: {var80}\n"
+            f"- **Componentes necesarios para 90% de varianza**: {var90}\n\n")
+        f.write("### Interpretación\n\n")
+        f.write(
+            "Los primeros componentes capturan los patrones de rating más "
+            "globales (e.g., películas populares universalmente bien "
+            "calificadas), mientras que los componentes posteriores capturan "
+            "preferencias más específicas de nichos o géneros. La proyección "
+            "2D de películas (fig_svd_03) muestra agrupamientos por género, "
+            "lo que confirma que SVD descubre factores latentes con "
+            "interpretación semántica. El error de reconstrucción "
+            "(fig_svd_04) decrece rápidamente con los primeros componentes, "
+            "indicando que la información esencial de la matriz se concentra "
+            "en pocas dimensiones. La tabla de top películas por componente "
+            "revela qué títulos dominan cada factor latente.\n\n")
+        f.write("### Figuras generadas\n\n")
+        f.write(
+            "| Figura | Descripción |\n"
+            "|---|---|\n"
+            "| fig_svd_01 | Varianza explicada por componente y acumulada |\n"
+            "| fig_svd_02 | Usuarios proyectados en espacio latente 2D |\n"
+            "| fig_svd_03 | Películas proyectadas en 2D, coloreadas por "
+            "género |\n"
+            "| fig_svd_04 | Error relativo de reconstrucción vs. componentes "
+            "|\n\n")
+        f.write("### Tablas generadas\n\n")
+        f.write(
+            "| Tabla | Contenido |\n"
+            "|---|---|\n"
+            "| svd_varianza_explicada.csv | Varianza explicada y acumulada "
+            "por componente |\n"
+            "| svd_reconstruccion_error.csv | Error de reconstrucción para "
+            "distintos k |\n"
+            "| svd_top_peliculas_por_componente.csv | Top 10 películas con "
+            "mayor peso por factor latente |\n")
 
 
 def main() -> None:

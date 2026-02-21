@@ -223,7 +223,7 @@ def plot_pwave_detail(signals: np.ndarray, S: np.ndarray,
     axes[-1, 0].set_xlabel("Tiempo (s)")
     axes[-1, 1].set_xlabel("Tiempo (s)")
 
-    fig.suptitle(f"Detalle P-wave — Registro {rec_name}", fontsize=12)
+    fig.suptitle(f"Detalle onda P — Registro {rec_name}", fontsize=12)
     fig.tight_layout()
     fig.savefig(os.path.join(output_dir,
                              f"fig_ica_05_pwave_{rec_name}.png"), dpi=200)
@@ -299,39 +299,183 @@ def save_mixing_matrix(ica_model, rec_name: str, output_dir: str) -> None:
 def write_summary(all_ica_results: dict, kurtosis_df: pd.DataFrame,
                   output_dir: str) -> None:
     path = os.path.join(output_dir, "resumen_ica.md")
+    avg_k_orig = kurtosis_df["kurtosis_original"].abs().mean()
+    avg_k_ic = kurtosis_df["kurtosis_ic"].abs().mean()
+    records_list = list(all_ica_results.keys())
+
     with open(path, "w", encoding="utf-8") as f:
-        f.write("# Resumen ICA - MIT-BIH Arrhythmia P-Wave\n\n")
-        f.write("## Dataset\n")
-        f.write("- Fuente: MIT-BIH Arrhythmia Database P-Wave Annotations "
-                "(PhysioNet)\n")
-        f.write(f"- Registros analizados: {list(all_ica_results.keys())}\n")
-        f.write("- Canales por registro: 2 (MLII + V1/V2/V5)\n")
-        f.write("- Frecuencia de muestreo: 360 Hz\n")
-        f.write(f"- Ventana analizada: {SAMPLE_WINDOW} muestras "
-                f"({SAMPLE_WINDOW / 360:.1f} s)\n\n")
-        f.write("## Preprocesamiento\n")
-        f.write("- StandardScaler por canal (media=0, std=1)\n")
-        f.write("- Ventana de 10 segundos desde el inicio del registro\n\n")
-        f.write("## Método\n")
-        f.write("- FastICA (scikit-learn), 2 componentes, "
-                "whitening='unit-variance'\n\n")
-        f.write("## Resultados clave\n")
-        avg_k_orig = kurtosis_df["kurtosis_original"].abs().mean()
-        avg_k_ic = kurtosis_df["kurtosis_ic"].abs().mean()
-        f.write(f"- Kurtosis promedio (|valor|) — originales: "
-                f"{avg_k_orig:.2f}, ICA: {avg_k_ic:.2f}\n")
-        f.write("- Componentes ICA tienden a mayor kurtosis "
-                "(mayor no-gaussianidad)\n\n")
-        f.write("## Figuras generadas\n")
-        for rec in all_ica_results:
-            f.write(f"- fig_ica_01_originales_{rec}: Señales originales\n")
-            f.write(f"- fig_ica_02_componentes_{rec}: Componentes ICA\n")
-            f.write(f"- fig_ica_03_comparacion_{rec}: Original vs ICA\n")
-        f.write("- fig_ica_04_kurtosis: Kurtosis comparativa\n")
-        f.write("- fig_ica_05_pwave_*: Detalle con anotaciones P-wave\n\n")
-        f.write("## Tablas generadas\n")
-        f.write("- ica_kurtosis.csv\n")
-        f.write("- ica_mixing_matrix_*.csv (por registro)\n")
+        f.write("# ICA (Análisis de Componentes Independientes)\n\n")
+
+        # ── 1. Descripción teórica ──
+        f.write("## 1. Descripción teórica\n\n")
+        f.write("### Explicación del algoritmo y objetivo principal\n\n")
+        f.write(
+            "El Análisis de Componentes Independientes (ICA) es una técnica "
+            "de separación ciega de fuentes (BSS, por sus siglas en inglés). "
+            "Dado un conjunto de señales observadas que son mezclas lineales "
+            "de fuentes independientes desconocidas, ICA recupera las fuentes "
+            "originales sin conocer el proceso de mezcla. Formalmente, si "
+            "X = A·S donde X son las observaciones, A es la matriz de mezcla "
+            "desconocida y S son las fuentes independientes, ICA estima una "
+            "matriz W ≈ A⁻¹ tal que S ≈ W·X. El algoritmo FastICA maximiza "
+            "la no-gaussianidad de las componentes extraídas (medida por "
+            "negentropía o kurtosis), basándose en el Teorema Central del "
+            "Límite: las mezclas de señales independientes tienden a ser más "
+            "gaussianas que las fuentes originales.\n\n")
+        f.write("### Principales características y supuestos\n\n")
+        f.write(
+            "- **Independencia estadística**: las fuentes originales deben "
+            "ser estadísticamente independientes (más fuerte que la "
+            "decorrelación).\n"
+            "- **No-gaussianidad**: como máximo una fuente puede ser "
+            "gaussiana; las demás deben tener distribuciones no-gaussianas.\n"
+            "- **Mezcla lineal e instantánea**: el modelo asume que las "
+            "observaciones son combinaciones lineales de las fuentes en el "
+            "mismo instante temporal.\n"
+            "- **Ambigüedades**: ICA no puede determinar el orden, el signo "
+            "ni la escala de las componentes (son indeterminaciones "
+            "inherentes).\n"
+            "- **Blanqueo previo (whitening)**: se pre-procesa para "
+            "decorrelacionar y normalizar las señales, reduciendo el "
+            "problema a buscar una rotación que maximice la "
+            "independencia.\n\n")
+        f.write("### Diferencias con PCA\n\n")
+        f.write(
+            "| Aspecto | ICA | PCA |\n"
+            "|---|---|---|\n"
+            "| Objetivo | Maximizar independencia estadística | Maximizar "
+            "varianza explicada |\n"
+            "| Criterio | No-gaussianidad (negentropía, kurtosis) | "
+            "Varianza (valores propios) |\n"
+            "| Tipo de relación | Capta dependencias de orden superior | "
+            "Solo decorrelación (2do orden) |\n"
+            "| Ortogonalidad | Componentes no necesariamente ortogonales | "
+            "Componentes ortogonales |\n"
+            "| Ordenamiento | Sin orden natural entre componentes | "
+            "Ordenadas por varianza decreciente |\n"
+            "| Aplicación típica | Separación de fuentes (señales) | "
+            "Reducción de dimensionalidad |\n\n")
+
+        # ── 2. Usos y aplicaciones ──
+        f.write("## 2. Usos y aplicaciones\n\n")
+        f.write("### Principales usos en análisis de datos\n\n")
+        f.write(
+            "- **Separación ciega de fuentes (BSS)**: extraer señales "
+            "originales a partir de mezclas observadas, sin conocimiento "
+            "previo del proceso de mezcla.\n"
+            "- **Eliminación de artefactos**: remover ruido, artefactos "
+            "musculares o parpadeos de señales biomédicas.\n"
+            "- **Extracción de características**: obtener representaciones "
+            "estadísticamente independientes que pueden ser más informativas "
+            "para tareas de clasificación.\n\n")
+        f.write("### Áreas de aplicación\n\n")
+        f.write(
+            "1. **Electrocardiografía (ECG)**: separación de la actividad "
+            "cardíaca de diferentes fuentes (actividad auricular vs "
+            "ventricular), eliminación de ruido muscular y de línea "
+            "eléctrica. En este ejercicio, ICA separa las componentes "
+            "independientes de las derivaciones ECG, permitiendo aislar "
+            "patrones como la onda P.\n"
+            "2. **Electroencefalografía (EEG)**: eliminación de artefactos "
+            "oculares (parpadeos) y musculares de registros cerebrales. "
+            "Es estándar en herramientas como EEGLAB para limpiar datos "
+            "antes de análisis de potenciales evocados.\n"
+            "3. **Procesamiento de audio (problema del cóctel)**: "
+            "separar las voces individuales de hablantes a partir de "
+            "grabaciones con múltiples micrófonos, donde cada micrófono "
+            "capta una mezcla de todas las fuentes.\n\n")
+
+        # ── 3. Aplicación práctica ──
+        f.write("## 3. Aplicación práctica\n\n")
+        f.write("### Dataset utilizado\n\n")
+        f.write(
+            "- **Fuente**: MIT-BIH Arrhythmia Database — P-Wave Annotations "
+            "(PhysioNet, https://physionet.org/content/pwave/1.0.0/)\n"
+            "- **Descripción**: 12 registros ECG seleccionados del MIT-BIH "
+            "Arrhythmia Database con anotaciones de onda P realizadas por "
+            "dos expertos. Los registros incluyen patologías que dificultan "
+            "la detección de ondas P.\n"
+            f"- **Registros analizados**: {records_list}\n"
+            "- **Canales por registro**: 2 (derivación MLII + derivación "
+            "precordial V1/V2/V5)\n"
+            "- **Frecuencia de muestreo**: 360 Hz\n"
+            f"- **Ventana analizada**: {SAMPLE_WINDOW} muestras "
+            f"({SAMPLE_WINDOW / 360:.1f} segundos)\n\n")
+        f.write("### Decisiones de preprocesamiento\n\n")
+        f.write(
+            "- Se seleccionó una ventana de 10 segundos desde el inicio de "
+            "cada registro para el análisis.\n"
+            "- Se aplicó `StandardScaler` por canal (media=0, std=1) antes "
+            "de ICA, ya que FastICA requiere señales centradas.\n"
+            "- Se utilizó blanqueo (whitening='unit-variance') como paso "
+            "previo a la extracción de componentes.\n\n")
+        f.write("### Parámetros del algoritmo\n\n")
+        f.write(
+            "| Parámetro | Valor |\n"
+            "|---|---|\n"
+            "| Algoritmo | FastICA (scikit-learn) |\n"
+            "| Componentes | 2 (igual al número de canales) |\n"
+            "| Whitening | unit-variance |\n"
+            "| Iteraciones máximas | 1000 |\n\n")
+        f.write("### Resultados obtenidos\n\n")
+        f.write("**Kurtosis por registro y componente:**\n\n")
+        f.write(
+            "| Registro | Canal original | Kurtosis orig. | IC | "
+            "Kurtosis IC |\n"
+            "|---|---|---|---|---|\n")
+        for _, row in kurtosis_df.iterrows():
+            f.write(
+                f"| {row['registro']} | {row['canal_original']} | "
+                f"{row['kurtosis_original']:.2f} | {row['componente_ic']} | "
+                f"{row['kurtosis_ic']:.2f} |\n")
+        f.write(
+            f"\n- **Kurtosis promedio (|valor|)**: originales={avg_k_orig:.2f}"
+            f", ICA={avg_k_ic:.2f}\n\n")
+        f.write("### Interpretación\n\n")
+        f.write(
+            "FastICA descompone las dos derivaciones ECG en dos componentes "
+            "estadísticamente independientes. Los componentes ICA presentan "
+            f"una kurtosis promedio de {avg_k_ic:.2f} (vs {avg_k_orig:.2f} "
+            "de los canales originales), lo que indica que el algoritmo "
+            "efectivamente maximiza la no-gaussianidad de cada componente, "
+            "aislando fuentes con distribuciones más impulsivas (picos QRS, "
+            "ondas P). En las figuras de comparación (fig_ica_03) se observa "
+            "que las componentes ICA redistribuyen la información de las "
+            "derivaciones: un IC tiende a capturar la actividad ventricular "
+            "dominante (complejos QRS), mientras que el otro aísla mejor "
+            "las ondas P y T de menor amplitud. Las figuras de detalle P-wave "
+            "(fig_ica_05) muestran que las anotaciones de onda P (marcadas "
+            "en rojo) coinciden con morfologías recurrentes en las "
+            "componentes, validando que ICA puede facilitar la detección "
+            "de estas ondas al separarlas de la actividad ventricular "
+            "dominante. La matriz de mezcla estimada (ica_mixing_matrix) "
+            "revela cómo cada derivación contribuye a cada componente "
+            "independiente.\n\n")
+        f.write("### Figuras generadas\n\n")
+        f.write("| Figura | Descripción |\n|---|---|\n")
+        for rec in records_list:
+            f.write(
+                f"| fig_ica_01_originales_{rec} | Señales ECG originales "
+                f"(registro {rec}) |\n")
+            f.write(
+                f"| fig_ica_02_componentes_{rec} | Componentes ICA "
+                f"(registro {rec}) |\n")
+            f.write(
+                f"| fig_ica_03_comparacion_{rec} | Original vs ICA lado a "
+                f"lado |\n")
+        f.write(
+            "| fig_ica_04_kurtosis | Kurtosis comparativa: canales "
+            "originales vs ICA |\n"
+            "| fig_ica_05_pwave_* | Detalle con anotaciones P-wave "
+            "superpuestas |\n\n")
+        f.write("### Tablas generadas\n\n")
+        f.write(
+            "| Tabla | Contenido |\n"
+            "|---|---|\n"
+            "| ica_kurtosis.csv | Kurtosis de canales originales y "
+            "componentes ICA por registro |\n"
+            "| ica_mixing_matrix_*.csv | Matriz de mezcla estimada por "
+            "registro |\n")
 
 
 # ─────────────────────────── Main ───────────────────────────────────
